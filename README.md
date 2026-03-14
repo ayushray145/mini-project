@@ -5,7 +5,7 @@
 <img width="1847" height="938" alt="Image" src="https://github.com/user-attachments/assets/bb6849b4-07aa-43cd-82e8-3297726ebeac" />
 
 ## Backend
-The backend lives in `backend/` and exposes:
+For local dev, the backend lives in `backend/` and exposes:
 - `GET /api/health` for basic status.
 - `POST /api/message` to broadcast chat messages via Pusher.
 
@@ -18,3 +18,15 @@ Notes:
 - Pusher is required for chat delivery in this minimal backend.
 
 Frontend dev server already proxies `/api` to `http://localhost:3000` via `frontend/vite.config.js`.
+
+## Vercel
+This repo is structured for Vercel deployments with serverless functions:
+- `api/health.js`
+- `api/message.js`
+
+Set these environment variables in Vercel:
+- `PUSHER_APP_ID`
+- `PUSHER_KEY`
+- `PUSHER_SECRET`
+- `PUSHER_CLUSTER`
+- `ALLOWED_ORIGIN` (optional)
