@@ -1,0 +1,2207 @@
+.discord-app {
+  --neo-primary: #ffe54d;
+  --neo-secondary: #7f3cff;
+  --neo-on-primary: #111;
+  --neo-on-secondary: #fff;
+  --neo-bg: #0b0b0b;
+  --neo-surface: #111;
+  display: flex;
+  min-height: 100vh;
+  color: #f7f7f7;
+  background: var(--neo-bg);
+}
+
+.neo-landing {
+  --neo-primary: #ffe54d;
+  --neo-secondary: #7f3cff;
+  --neo-on-primary: #111;
+  --neo-on-secondary: #fff;
+  --neo-bg: #0b0b0b;
+  --neo-surface: #111;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  background: var(--neo-bg);
+  color: #f7f7f7;
+  padding: 40px 28px 48px;
+}
+
+.neo-landing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%23ffe54d' stroke-width='2' stroke-opacity='0.16'%3E%3Ccircle cx='36' cy='44' r='14'/%3E%3Cpath d='M92 28l10 18 20 2-14 14 4 20-18-10-18 10 4-20-14-14 20-2z'/%3E%3Crect x='186' y='24' width='28' height='28' rx='3'/%3E%3Cpath d='M28 126h38M47 107v38'/%3E%3Cpath d='M104 116c12-16 24 16 36 0 12-16 24 16 36 0'/%3E%3Cpath d='M200 102l26 12-26 12-26-12z'/%3E%3Cpath d='M22 198l30-20 30 20-30 20z'/%3E%3Ccircle cx='136' cy='198' r='10'/%3E%3Cpath d='M176 176h44v28h-44z'/%3E%3Cpath d='M228 190l20-14M228 190l20 14'/%3E%3Cpath d='M90 232l8 14 16 1-12 10 3 15-15-8-15 8 3-15-12-10 16-1z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 320px 320px;
+  background-repeat: repeat;
+  opacity: 0.65;
+  pointer-events: none;
+  z-index: 0;
+  animation: wallpaperDrift 28s linear infinite;
+}
+
+.neo-landing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(127, 60, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 86% 16%, rgba(255, 229, 77, 0.18), transparent 30%),
+    radial-gradient(circle at 74% 76%, rgba(127, 60, 255, 0.14), transparent 36%);
+  pointer-events: none;
+  z-index: 0;
+  animation: glowPulse 8s ease-in-out infinite;
+}
+
+.neo-nav {
+  max-width: 1200px;
+  margin: 0 auto 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 14px;
+  padding: 12px 16px;
+  border: 3px solid #000;
+  background: var(--neo-surface);
+  backdrop-filter: blur(6px);
+  box-shadow: 6px 6px 0 var(--neo-secondary);
+}
+
+.neo-nav-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.neo-nav-links a {
+  color: #f7f7f7;
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.neo-nav-links a:hover {
+  color: var(--neo-primary);
+  border-color: var(--neo-primary);
+  transform: translateY(-1px);
+}
+
+.neo-nav-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.neo-logo {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--neo-primary);
+  text-shadow: 3px 3px 0 var(--neo-secondary);
+  transition: transform 0.18s ease;
+}
+
+.neo-logo:hover {
+  transform: translateY(-2px) rotate(-1deg);
+}
+
+.neo-hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 30px;
+  position: relative;
+}
+
+.neo-shape {
+  position: absolute;
+  border: 3px solid #000;
+  z-index: 0;
+}
+
+.neo-shape-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--neo-primary);
+  top: -14px;
+  right: 38%;
+  box-shadow: 5px 5px 0 var(--neo-secondary);
+  animation: floatUp 5.5s ease-in-out infinite;
+}
+
+.neo-mascot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: default;
+  transition: transform 0.18s ease;
+}
+
+.neo-mascot:hover {
+  transform: scale(1.06);
+}
+
+.neo-eye {
+  position: absolute;
+  top: 22px;
+  width: 6px;
+  height: 8px;
+  background: #000;
+  border-radius: 99px;
+  animation: mascotBlink 4.5s infinite;
+}
+
+.neo-eye-left {
+  left: 19px;
+}
+
+.neo-eye-right {
+  right: 19px;
+}
+
+.neo-smile {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  width: 24px;
+  height: 12px;
+  transform: translateX(-50%);
+  border: 3px solid #000;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+}
+
+.neo-shape-square {
+  width: 56px;
+  height: 56px;
+  background: var(--neo-secondary);
+  bottom: 16px;
+  left: 44%;
+  transform: rotate(16deg);
+  box-shadow: 5px 5px 0 var(--neo-primary);
+  animation: floatSide 6.2s ease-in-out infinite;
+}
+
+.neo-shape-zig {
+  width: 44px;
+  height: 120px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--neo-primary) 0 10px,
+    #0b0b0b 10px 20px
+  );
+  right: -6px;
+  top: 24%;
+  box-shadow: 4px 4px 0 var(--neo-secondary);
+  animation: floatUp 7.2s ease-in-out infinite;
+}
+
+.neo-copy,
+.neo-mock {
+  border: 4px solid #000;
+  box-shadow: 10px 10px 0 var(--neo-secondary);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.neo-copy:hover,
+.neo-mock:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 14px 14px 0 var(--neo-secondary);
+}
+
+.neo-copy {
+  background: var(--neo-primary);
+  color: #0b0b0b;
+  padding: 40px;
+}
+
+.neo-kicker {
+  margin: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.neo-copy h1 {
+  margin: 14px 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.02;
+}
+
+.neo-copy p {
+  font-size: 1rem;
+  max-width: 46ch;
+  line-height: 1.65;
+}
+
+.neo-pills {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.neo-pills span {
+  border: 2px solid #000;
+  background: #fff6c4;
+  padding: 6px 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.neo-pills span:hover {
+  transform: translateY(-2px);
+  background: #fff;
+}
+
+.neo-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.neo-btn {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid #000;
+  font-weight: 800;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.neo-btn::after {
+  content: "";
+  position: absolute;
+  inset: -20% -120%;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 65%
+  );
+  transform: translateX(-30%);
+  transition: transform 0.45s ease;
+}
+
+.neo-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.neo-btn:hover::after {
+  transform: translateX(35%);
+}
+
+.neo-btn:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.neo-btn-yellow {
+  background: var(--neo-primary);
+  color: #111;
+}
+
+.neo-btn-purple {
+  background: var(--neo-secondary);
+  color: #fff;
+}
+
+.neo-btn-dark {
+  background: #111;
+  color: var(--neo-primary);
+}
+
+.neo-mock {
+  background: var(--neo-secondary);
+  padding: 16px;
+}
+
+.mock-top {
+  background: #111;
+  color: var(--neo-primary);
+  border: 3px solid #000;
+  font-weight: 700;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.mock-body {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 14px;
+}
+
+.mock-body aside,
+.mock-body main {
+  border: 3px solid #000;
+  background: var(--neo-primary);
+  color: #111;
+  padding: 14px;
+}
+
+.mock-body aside {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-body main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mock-body article {
+  border: 2px solid #000;
+  background: #fff6c4;
+  padding: 12px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.mock-body article:hover {
+  transform: translateX(4px);
+  background: #fffde3;
+}
+
+.mock-body b {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.neo-features,
+.neo-process,
+.neo-metrics,
+.neo-cta-band,
+.neo-footer {
+  max-width: 1200px;
+  margin: 40px auto 0;
+}
+
+.neo-features {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.neo-feature-card {
+  border: 3px solid #000;
+  background: var(--neo-primary);
+  color: #0b0b0b;
+  padding: 24px;
+  box-shadow: 8px 8px 0 var(--neo-secondary);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.neo-feature-card:hover {
+  transform: translate(-4px, -4px) rotate(-0.4deg);
+  box-shadow: 12px 12px 0 var(--neo-secondary);
+}
+
+.neo-feature-card h3 {
+  margin: 0 0 12px;
+}
+
+.neo-feature-card p {
+  margin: 0;
+}
+
+.neo-process {
+  border: 4px solid #000;
+  background: var(--neo-secondary);
+  color: #fff;
+  padding: 28px;
+  box-shadow: 10px 10px 0 var(--neo-primary);
+}
+
+.neo-process h2 {
+  margin: 0 0 20px;
+  color: var(--neo-primary);
+}
+
+.neo-process-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.neo-step {
+  border: 3px solid #000;
+  background: #0b0b0b;
+  padding: 18px;
+  transition: transform 0.16s ease;
+}
+
+.neo-step:hover {
+  transform: translateY(-4px);
+}
+
+.neo-step span {
+  display: inline-block;
+  border: 2px solid #000;
+  background: var(--neo-primary);
+  color: #0b0b0b;
+  padding: 3px 8px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.neo-step h4 {
+  margin: 0 0 10px;
+}
+
+.neo-step p {
+  margin: 0;
+  color: #d8ccff;
+}
+
+.neo-metrics {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.neo-metrics > div {
+  border: 3px solid #000;
+  background: #111;
+  color: var(--neo-primary);
+  padding: 18px;
+  box-shadow: 6px 6px 0 var(--neo-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.neo-metrics > div:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 10px 10px 0 var(--neo-secondary);
+}
+
+.neo-metrics strong {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.neo-metrics span {
+  color: #e9d8ff;
+  font-size: 0.9rem;
+}
+
+.neo-cta-band {
+  border: 4px solid #000;
+  background: var(--neo-primary);
+  color: #0b0b0b;
+  box-shadow: 10px 10px 0 var(--neo-secondary);
+  padding: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 22px;
+}
+
+.neo-cta-band h2 {
+  margin: 0;
+  max-width: 36ch;
+}
+
+.neo-footer {
+  border: 3px solid #000;
+  background: var(--neo-secondary);
+  color: #fff;
+  box-shadow: 8px 8px 0 #000;
+  padding: 22px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.neo-footer-brand {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--neo-primary);
+}
+
+.neo-footer-links {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.neo-footer a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 2px solid var(--neo-primary);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.neo-footer a:hover {
+  color: var(--neo-primary);
+  border-color: #fff;
+}
+
+.neo-footer p {
+  margin: 0;
+  color: #f2e8ff;
+  font-size: 0.9rem;
+}
+
+.neo-nav,
+.neo-hero,
+.neo-features,
+.neo-process,
+.neo-metrics,
+.neo-cta-band,
+.neo-footer {
+  position: relative;
+  z-index: 1;
+  animation: sectionIn 0.55s ease both;
+}
+
+.neo-hero {
+  animation-delay: 0.05s;
+}
+
+.neo-features {
+  animation-delay: 0.12s;
+}
+
+.neo-process {
+  animation-delay: 0.18s;
+}
+
+.neo-metrics {
+  animation-delay: 0.24s;
+}
+
+.neo-cta-band {
+  animation-delay: 0.3s;
+}
+
+.neo-footer {
+  animation-delay: 0.36s;
+}
+
+.neo-feature-card:nth-child(1) { animation: cardIn 0.45s ease both 0.2s; }
+.neo-feature-card:nth-child(2) { animation: cardIn 0.45s ease both 0.28s; }
+.neo-feature-card:nth-child(3) { animation: cardIn 0.45s ease both 0.36s; }
+
+.neo-step:nth-child(1) { animation: cardIn 0.45s ease both 0.26s; }
+.neo-step:nth-child(2) { animation: cardIn 0.45s ease both 0.34s; }
+.neo-step:nth-child(3) { animation: cardIn 0.45s ease both 0.42s; }
+
+@keyframes sectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes mascotBlink {
+  0%, 46%, 52%, 100% { transform: scaleY(1); }
+  48%, 50% { transform: scaleY(0.15); }
+}
+
+@keyframes floatSide {
+  0%, 100% { transform: rotate(16deg) translateX(0); }
+  50% { transform: rotate(16deg) translateX(8px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.76; }
+}
+
+@keyframes wallpaperDrift {
+  from { background-position: 0 0; }
+  to { background-position: 180px 160px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-landing::before,
+  .neo-landing::after,
+  .neo-shape,
+  .neo-nav,
+  .neo-hero,
+  .neo-features,
+  .neo-process,
+  .neo-metrics,
+  .neo-cta-band,
+  .neo-footer,
+  .neo-feature-card,
+  .neo-step {
+    animation: none !important;
+  }
+
+  .neo-btn,
+  .neo-copy,
+  .neo-mock,
+  .neo-feature-card,
+  .neo-step,
+  .neo-metrics > div {
+    transition: none !important;
+  }
+}
+
+.server-rail {
+  width: 72px;
+  background: var(--neo-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+  border-right: 3px solid #000;
+  box-shadow: 5px 0 0 var(--neo-secondary);
+}
+
+.server-pill {
+  width: 46px;
+  height: 46px;
+  border: 2px solid #000;
+  border-radius: 16px;
+  background: var(--neo-primary);
+  color: #111;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.14s ease, background-color 0.14s ease, color 0.14s ease;
+}
+
+.server-pill:hover,
+.server-pill.active {
+  border-radius: 10px;
+  background: var(--neo-secondary);
+  color: #fff;
+  transform: translate(-1px, -1px);
+}
+
+.discord-shell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.discord-topbar {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--neo-primary);
+  border-bottom: 3px solid #000;
+  box-shadow: 0 5px 0 var(--neo-secondary);
+}
+
+.brand {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: 0.04em;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.neo-theme-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  color: var(--neo-primary);
+}
+
+.neo-theme-select-wrap span {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.neo-theme-select {
+  border: 2px solid #000;
+  background: #fff;
+  color: #111;
+  font-weight: 800;
+  padding: 6px 10px;
+  min-width: 140px;
+}
+
+.neo-theme-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25);
+}
+
+.topbar-actions button {
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #fff6c4;
+  color: #111;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.topbar-actions button:hover {
+  background: var(--neo-secondary);
+  color: #fff;
+  transform: translate(-1px, -1px);
+}
+
+.topbar-actions button.active {
+  background: var(--neo-surface);
+  color: var(--neo-on-surface);
+}
+
+.discord-workspace {
+  flex: 1;
+  min-height: 0;
+  padding: 20px;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 229, 77, 0.09) 0 13px,
+      rgba(127, 60, 255, 0.07) 13px 26px
+    );
+}
+
+.page-grid,
+.chat-layout {
+  height: calc(100vh - 88px);
+  display: grid;
+  gap: 12px;
+}
+
+.page-grid {
+  grid-template-columns: 240px 1fr 280px;
+}
+
+.chat-layout {
+  grid-template-columns: 220px 1fr 250px;
+}
+
+.panel {
+  background: var(--neo-surface);
+  border: 3px solid #000;
+  border-radius: 10px;
+  min-height: 0;
+  box-shadow: 7px 7px 0 var(--neo-secondary);
+}
+
+.panel-title {
+  padding: 12px 14px;
+  color: #111;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  border-bottom: 3px solid #000;
+  background: var(--neo-primary);
+}
+
+.channel-list,
+.member-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--neo-text-main);
+  cursor: pointer;
+  border: 2px solid transparent;
+  font-weight: 700;
+  transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.channel-item:hover,
+.channel-item.active {
+  background: var(--neo-secondary);
+  color: #fff;
+  border-color: #000;
+  transform: translateX(2px);
+}
+
+.hash {
+  font-size: 1rem;
+  color: var(--neo-primary);
+  font-weight: 900;
+}
+
+.content-panel {
+  padding: 22px;
+}
+
+.content-panel h1 {
+  margin: 0;
+  color: var(--neo-primary);
+  font-size: 2rem;
+}
+
+.muted {
+  color: var(--neo-text-main);
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+.stats-row {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-card {
+  background: var(--neo-primary);
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 5px 5px 0 var(--neo-secondary);
+  color: #111;
+}
+
+.stat-label {
+  color: #2f2f2f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stat-card strong {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.activity-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activity-card {
+  margin: 0;
+  background: #fff6c4;
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 5px 5px 0 var(--neo-secondary);
+}
+
+.activity-card h3 {
+  margin: 0 0 8px;
+  color: #111;
+  font-size: 0.95rem;
+}
+
+.activity-card p {
+  margin: 0 0 8px;
+  color: #3a3a3a;
+  font-size: 0.85rem;
+}
+
+.activity-card span {
+  color: var(--neo-secondary);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid #23252a;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.chat-header strong {
+  color: #fff;
+}
+
+.chat-header span {
+  color: #949ba4;
+  font-size: 0.85rem;
+}
+
+.message-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.message-row {
+  display: flex;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #fff;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-meta strong {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.message-meta span {
+  color: #949ba4;
+  font-size: 0.75rem;
+}
+
+.message-row p {
+  margin: 2px 0 0;
+  color: #dbdee1;
+  font-size: 0.92rem;
+}
+
+.chat-input-wrap {
+  padding: 12px;
+}
+
+.chat-input-wrap input {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #383a40;
+  color: #f2f3f5;
+  padding: 12px 14px;
+}
+
+.chat-input-wrap input:focus {
+  outline: 2px solid #5865f2;
+}
+
+.member-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #b5bac1;
+}
+
+.member-list li:hover {
+  background: #35373d;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #23a559;
+}
+
+.neo-chat-layout {
+  height: calc(100vh - 88px);
+  display: grid;
+  grid-template-columns: 220px 1fr 250px;
+  gap: 16px;
+}
+
+.neo-chat-panel {
+  min-height: 0;
+  border: 3px solid #000;
+  background: var(--neo-surface);
+  box-shadow: 7px 7px 0 var(--neo-secondary);
+}
+
+.neo-chat-title {
+  padding: 14px 16px;
+  border-bottom: 3px solid #000;
+  background: var(--neo-primary);
+  color: var(--neo-on-primary);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.neo-chat-list,
+.neo-member-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+}
+
+.neo-chat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--neo-text-main);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.neo-chat-item:hover,
+.neo-chat-item.active {
+  background: var(--neo-secondary);
+  border-color: #000;
+  color: var(--neo-on-secondary);
+  transform: translateX(2px);
+}
+
+.neo-room-badge {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--neo-primary);
+  color: var(--neo-on-primary);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.neo-room-create {
+  border-top: 2px solid #000;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.neo-room-create-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--neo-text-main);
+}
+
+.neo-room-create input {
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 0.82rem;
+  background: var(--neo-input-bg);
+  color: var(--neo-input-text);
+}
+
+.neo-room-create button {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.neo-chat-hash {
+  color: var(--neo-primary);
+  font-weight: 900;
+}
+
+.neo-chat-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.neo-chat-header {
+  padding: 14px 16px;
+  border-bottom: 3px solid #000;
+  background: var(--neo-primary);
+  color: var(--neo-on-primary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.neo-chat-header strong {
+  font-size: 1.05rem;
+}
+
+.neo-chat-header span {
+  color: var(--neo-text-muted);
+  font-size: 0.9rem;
+}
+
+.neo-chat-home-btn {
+  margin-left: auto;
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.neo-chat-home-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-theme-switcher {
+  border-bottom: 3px solid #000;
+  padding: 10px 12px;
+  background: #fff6c4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.neo-theme-switcher p {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #111;
+  text-transform: uppercase;
+}
+
+.neo-theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.neo-theme-chip {
+  border: 2px solid #000;
+  background: #fff;
+  padding: 3px;
+  display: inline-flex;
+  border-radius: 6px;
+  gap: 3px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.neo-theme-chip span {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  border-radius: 2px;
+}
+
+.neo-theme-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-theme-chip.active {
+  background: var(--neo-primary);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-message-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    linear-gradient(rgba(11, 11, 11, 0.82), rgba(11, 11, 11, 0.82)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.06) 0 12px,
+      rgba(0, 0, 0, 0.08) 12px 24px
+    );
+}
+
+.neo-message-empty {
+  color: var(--neo-text-muted);
+  font-size: 0.9rem;
+  padding: 8px 4px;
+}
+
+.neo-message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: min(88%, 720px);
+  border: 2px solid #000;
+  background: var(--neo-chat-card-bg);
+  color: var(--neo-chat-card-text);
+  padding: 9px 10px;
+  box-shadow: 3px 3px 0 var(--neo-secondary);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.neo-message-row:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--neo-secondary);
+}
+
+.neo-message-row-self {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--neo-secondary) 18%, var(--neo-chat-card-bg));
+}
+
+.neo-message-row-bot {
+  background: var(--neo-chat-bot-bg);
+  border-style: dashed;
+}
+
+.neo-avatar {
+  width: 34px;
+  height: 34px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.neo-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.neo-message-meta strong {
+  font-size: 0.92rem;
+}
+
+.neo-message-meta span {
+  font-size: 0.75rem;
+  color: var(--neo-chat-meta);
+}
+
+.neo-message-row p {
+  margin: 3px 0 0;
+  line-height: 1.45;
+  color: var(--neo-chat-card-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.neo-message-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.neo-code-block {
+  margin-top: 6px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 var(--neo-secondary);
+  overflow: hidden;
+}
+
+.neo-code-block pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.84rem !important;
+}
+
+.neo-whiteboard-wrap {
+  border-top: 3px solid #000;
+  border-bottom: 3px solid #000;
+  background: #fff6c4;
+  padding: 10px;
+}
+
+.neo-whiteboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.neo-whiteboard-toolbar strong {
+  margin-right: auto;
+  color: #111;
+}
+
+.neo-whiteboard-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid #000;
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #111;
+}
+
+.neo-whiteboard-toolbar input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #000;
+  padding: 0;
+  background: transparent;
+}
+
+.neo-whiteboard-toolbar input[type="range"] {
+  accent-color: var(--neo-secondary);
+}
+
+.neo-whiteboard-toolbar button {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.neo-whiteboard-toolbar button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-whiteboard-canvas {
+  width: 100%;
+  height: 260px;
+  display: block;
+  border: 3px solid #000;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.neo-chat-input-wrap {
+  position: sticky;
+  bottom: 0;
+  border-top: 3px solid #000;
+  background: var(--neo-composer-bg);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+}
+
+.neo-chat-input-wrap.no-ai {
+  grid-template-columns: 1fr auto;
+}
+
+.neo-chat-ai-btn {
+  border: 2px solid #000;
+  background: var(--neo-primary);
+  color: var(--neo-on-primary);
+  font-weight: 900;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.neo-chat-ai-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-chat-input-wrap input {
+  width: 100%;
+  border: 2px solid #000;
+  background: var(--neo-input-bg);
+  color: var(--neo-input-text);
+  padding: 11px 12px;
+  font-size: 0.95rem;
+}
+
+.neo-chat-input-wrap input::placeholder {
+  color: var(--neo-input-placeholder);
+}
+
+.neo-chat-input-wrap input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(127, 60, 255, 0.3);
+}
+
+.neo-chat-input-wrap button {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.neo-chat-input-wrap button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.neo-member-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--neo-text-main);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 7px 8px;
+  margin-bottom: 8px;
+}
+
+.neo-member-list li:hover {
+  border-color: #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+}
+
+.neo-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--neo-primary);
+  border: 1px solid #000;
+}
+
+.neo-ai-panel {
+  margin: 12px;
+  border: 2px solid #000;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--neo-surface);
+  box-shadow: 5px 5px 0 var(--neo-secondary);
+}
+
+.neo-ai-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.neo-ai-body label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neo-text-main);
+}
+
+.neo-ai-body input,
+.neo-ai-body textarea {
+  width: 100%;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: var(--neo-input-bg);
+  color: var(--neo-input-text);
+  padding: 8px 10px;
+  font-size: 0.86rem;
+}
+
+.neo-ai-body textarea {
+  resize: vertical;
+}
+
+.neo-ai-body button {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.neo-ai-error {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.settings-layout {
+  height: calc(100vh - 88px);
+  display: grid;
+  place-items: center;
+}
+
+.settings-card {
+  width: min(760px, 100%);
+  border: 3px solid #000;
+  background: var(--neo-surface);
+  box-shadow: 9px 9px 0 var(--neo-secondary);
+  padding: 24px;
+}
+
+.settings-card h1 {
+  margin: 0;
+  color: var(--neo-primary);
+}
+
+.settings-card p {
+  margin: 8px 0 0;
+  color: var(--neo-text-muted);
+}
+
+.settings-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.settings-select {
+  justify-content: space-between;
+  background: #fff6c4;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.settings-select span {
+  color: #111;
+  font-size: 0.78rem;
+}
+
+.settings-section {
+  margin-top: 20px;
+  border-top: 3px solid #000;
+  padding-top: 14px;
+}
+
+.settings-section h2 {
+  margin: 0 0 12px;
+  color: var(--neo-primary);
+  font-size: 1.1rem;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 2px solid #000;
+  background: #fff6c4;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  color: #111;
+  font-weight: 700;
+}
+
+.settings-toggle-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--neo-secondary);
+}
+
+
+@media (max-width: 980px) {
+  .neo-landing {
+    padding: 24px 16px 28px;
+  }
+
+  .neo-hero {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .neo-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 22px;
+    position: static;
+    padding: 10px 12px;
+  }
+
+  .neo-nav-links {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .neo-nav-actions {
+    width: 100%;
+  }
+
+  .discord-topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-whiteboard-toolbar strong {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .mock-body {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-features,
+  .neo-process-grid,
+  .neo-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-shape {
+    display: none;
+  }
+
+  .neo-cta-band {
+    padding: 16px;
+  }
+
+  .page-grid,
+  .chat-layout,
+  .neo-chat-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .server-rail,
+  .members-panel,
+  .activity-panel,
+  .neo-chat-members {
+    display: none;
+  }
+
+  .discord-workspace {
+    padding: 12px;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .neo-landing {
+    padding: 18px 10px 20px;
+  }
+
+  .neo-copy,
+  .neo-mock,
+  .neo-feature-card,
+  .neo-process,
+  .neo-cta-band,
+  .neo-footer {
+    box-shadow: 4px 4px 0 var(--neo-secondary);
+  }
+
+  .discord-topbar {
+    padding: 8px 10px;
+    min-height: auto;
+    gap: 8px;
+  }
+
+  .brand {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .topbar-actions button {
+    padding: 9px 6px;
+    font-size: 0.86rem;
+  }
+
+  .page-grid,
+  .neo-chat-layout {
+    gap: 10px;
+  }
+
+  .content-panel {
+    padding: 14px;
+  }
+
+  .content-panel h1 {
+    font-size: 1.45rem;
+  }
+
+  .neo-chat-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .neo-chat-header strong {
+    width: 100%;
+  }
+
+  .neo-chat-home-btn {
+    margin-left: 0;
+    padding: 6px 8px;
+    font-size: 0.84rem;
+  }
+
+  .neo-message-list {
+    padding: 10px;
+    gap: 8px;
+    max-height: 50vh;
+  }
+
+  .neo-message-row {
+    width: 100%;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .neo-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+  }
+
+  .neo-message-meta strong {
+    font-size: 0.86rem;
+  }
+
+  .neo-message-meta span {
+    font-size: 0.72rem;
+  }
+
+  .neo-chat-input-wrap {
+    padding: 10px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "input input"
+      "ai send";
+  }
+
+  .neo-chat-ai-btn {
+    grid-area: ai;
+    justify-self: start;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .neo-chat-draft-input {
+    grid-area: input;
+    font-size: 0.9rem;
+  }
+
+  .neo-chat-send-btn {
+    grid-area: send;
+    justify-self: end;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+  }
+
+  .neo-whiteboard-wrap {
+    padding: 8px;
+  }
+
+  .neo-whiteboard-toolbar {
+    gap: 6px;
+  }
+
+  .neo-whiteboard-toolbar label {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+
+  .neo-whiteboard-toolbar button {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+
+  .neo-whiteboard-canvas {
+    height: 180px;
+  }
+
+  .settings-card {
+    padding: 14px;
+    box-shadow: 4px 4px 0 var(--neo-secondary);
+  }
+
+  .settings-card h1 {
+    font-size: 1.55rem;
+  }
+}
+
+/* SaaS / Vercel-inspired skin overrides */
+.discord-app,
+.neo-landing {
+  --saas-border: rgba(148, 163, 184, 0.25);
+  --saas-border-strong: rgba(148, 163, 184, 0.45);
+  --saas-shadow: 0 18px 48px rgba(2, 6, 23, 0.32);
+  --saas-shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.2);
+  --saas-radius-lg: 20px;
+  --saas-radius-md: 14px;
+  --saas-radius-sm: 10px;
+  color: var(--neo-text-main);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.08), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(14, 165, 233, 0.08), transparent 42%),
+    var(--neo-bg);
+}
+
+.neo-landing::before {
+  background-image:
+    linear-gradient(transparent 95%, rgba(148, 163, 184, 0.1) 95%),
+    linear-gradient(90deg, transparent 95%, rgba(148, 163, 184, 0.1) 95%);
+  background-size: 36px 36px;
+  opacity: 0.4;
+}
+
+.neo-landing::after {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(56, 189, 248, 0.12), transparent 38%),
+    radial-gradient(circle at 86% 22%, rgba(129, 140, 248, 0.12), transparent 40%),
+    radial-gradient(circle at 70% 76%, rgba(34, 197, 94, 0.12), transparent 40%);
+}
+
+.neo-shape {
+  display: none;
+}
+
+.neo-nav,
+.neo-copy,
+.neo-mock,
+.neo-feature-card,
+.neo-process,
+.neo-metrics > div,
+.neo-cta-band,
+.neo-footer,
+.panel,
+.neo-chat-panel,
+.settings-card,
+.stat-card,
+.activity-card,
+.neo-code-block,
+.neo-whiteboard-wrap {
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow) !important;
+  border-radius: var(--saas-radius-lg);
+  background: var(--neo-surface);
+}
+
+.neo-copy,
+.neo-feature-card,
+.neo-process,
+.neo-cta-band,
+.neo-footer,
+.stat-card,
+.activity-card {
+  color: var(--neo-text-main);
+}
+
+.neo-copy:hover,
+.neo-mock:hover,
+.neo-feature-card:hover,
+.neo-metrics > div:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--saas-shadow);
+}
+
+.neo-nav {
+  backdrop-filter: blur(10px);
+}
+
+.neo-logo {
+  text-shadow: none;
+  color: var(--neo-text-main);
+}
+
+.neo-nav-links a {
+  color: var(--neo-text-muted);
+}
+
+.neo-nav-links a:hover {
+  color: var(--neo-text-main);
+  border-color: transparent;
+}
+
+.neo-copy {
+  padding: 40px;
+}
+
+.neo-copy h1 {
+  color: var(--neo-text-main);
+}
+
+.neo-pills span {
+  border: 1px solid var(--saas-border);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--neo-text-main);
+  border-radius: 999px;
+}
+
+.neo-btn,
+.topbar-actions button,
+.neo-chat-home-btn,
+.neo-chat-ai-btn,
+.neo-chat-input-wrap button {
+  border: 1px solid var(--saas-border) !important;
+  border-radius: 999px;
+  box-shadow: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)) , var(--neo-secondary);
+  color: var(--neo-on-secondary);
+}
+
+.neo-btn:hover,
+.topbar-actions button:hover,
+.neo-chat-home-btn:hover,
+.neo-chat-ai-btn:hover,
+.neo-chat-input-wrap button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--saas-shadow-soft);
+}
+
+.neo-btn-yellow {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)) , var(--neo-primary);
+  color: var(--neo-on-primary);
+}
+
+.neo-btn-purple,
+.neo-btn-dark {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)) , var(--neo-secondary);
+  color: var(--neo-on-secondary);
+}
+
+.server-rail {
+  border-right: 1px solid var(--saas-border);
+  box-shadow: none;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.08), transparent 70%);
+}
+
+.server-pill {
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-radius-md);
+  background: var(--neo-surface);
+  color: var(--neo-text-main);
+}
+
+.server-pill:hover,
+.server-pill.active {
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+}
+
+.discord-topbar {
+  background: var(--neo-surface);
+  border-bottom: 1px solid var(--saas-border);
+  box-shadow: none;
+}
+
+.brand {
+  color: var(--neo-text-main);
+}
+
+.discord-workspace {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.06), transparent 35%),
+    radial-gradient(circle at 80% 15%, rgba(99, 102, 241, 0.06), transparent 35%),
+    var(--neo-bg);
+}
+
+.panel-title,
+.neo-chat-title,
+.neo-chat-header {
+  background: transparent;
+  border-bottom: 1px solid var(--saas-border);
+  color: var(--neo-text-main);
+}
+
+.topbar-actions button.active {
+  background: var(--neo-surface);
+  color: var(--neo-text-main);
+  border-color: var(--saas-border-strong);
+}
+
+.neo-theme-switcher {
+  border-bottom: 1px solid var(--saas-border);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.neo-theme-chip {
+  border: 1px solid var(--saas-border);
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.neo-theme-chip.active {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.neo-chat-item:hover,
+.neo-chat-item.active,
+.neo-member-list li:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: var(--saas-border-strong);
+  color: var(--neo-text-main);
+  transform: translateX(2px);
+}
+
+.neo-chat-hash {
+  color: var(--neo-text-muted);
+}
+
+.neo-message-list {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0)),
+    var(--neo-bg);
+}
+
+.neo-message-row {
+  border: 1px solid var(--saas-border);
+  box-shadow: none;
+  border-radius: var(--saas-radius-md);
+}
+
+.neo-message-row:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--saas-shadow-soft);
+}
+
+.neo-message-row-self {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.neo-message-row-bot {
+  background: rgba(99, 102, 241, 0.16);
+  border-style: solid;
+}
+
+.neo-avatar {
+  border: 1px solid var(--saas-border);
+}
+
+.neo-chat-input-wrap {
+  border-top: 1px solid var(--saas-border);
+  background: var(--neo-surface);
+  border-radius: 0 0 var(--saas-radius-lg) var(--saas-radius-lg);
+}
+
+.neo-chat-input-wrap input {
+  border: 1px solid var(--saas-border);
+  border-radius: 999px;
+  background: var(--neo-input-bg);
+}
+
+.neo-chat-input-wrap input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.neo-whiteboard-toolbar label,
+.settings-toggle-row,
+.settings-select {
+  border: 1px solid var(--saas-border);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.neo-whiteboard-toolbar button {
+  border: 1px solid var(--saas-border);
+}
+
+.neo-whiteboard-canvas {
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-radius-sm);
+}
+
+.settings-section {
+  border-top: 1px solid var(--saas-border);
+}
+
+.settings-section h2,
+.settings-card h1,
+.settings-card p {
+  color: var(--neo-text-main);
+}
+
+.mock-top,
+.mock-body aside,
+.mock-body main,
+.mock-body article {
+  border: 1px solid var(--saas-border);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--neo-text-main);
+  border-radius: var(--saas-radius-sm);
+}
+
+.neo-ai-panel {
+  border: 1px solid var(--saas-border);
+  box-shadow: var(--saas-shadow);
+}
+
+.neo-ai-body input,
+.neo-ai-body textarea {
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.neo-room-badge {
+  border: 1px solid var(--saas-border);
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--neo-text-main);
+}
+
+.neo-room-create {
+  border-top: 1px solid var(--saas-border);
+}
+
+.neo-room-create input,
+.neo-room-create button {
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .neo-chat-input-wrap {
+    border-radius: var(--saas-radius-lg);
+  }
+}
