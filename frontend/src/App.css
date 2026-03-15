@@ -371,6 +371,12 @@
 .mock-body article:hover {
   transform: translateX(4px);
   background: #fffde3;
+  color: #4a4a4a;
+}
+
+.mock-body article:hover b,
+.mock-body article:hover p {
+  color: #4a4a4a;
 }
 
 .mock-body b {
@@ -930,7 +936,7 @@
 
 .activity-card h3 {
   margin: 0 0 8px;
-  color: #111;
+  color: #fff;
   font-size: 0.95rem;
 }
 
