@@ -29,16 +29,16 @@ export default function Landing({
         <div className="neo-shape neo-shape-zig" />
 
         <div className="neo-copy">
-          <p className="neo-kicker">Discord-Inspired Collaboration</p>
-          <h1>Build, Ship, and Chat in One Brutal Workspace.</h1>
+          <h1>Developer Chatroom</h1>
+          <p className="neo-subhead">Ship decisions as fast as code.</p>
           <p>
-            A team chat platform with live channels, focused rooms, and fast decisions.
-            Styled with neobrutalist blocks, sharp contrast, and loud color for high-energy product teams.
+            DevRooms is a developer-first chatroom where each room maps to a workstream and every
+            message carries context, owners, and next steps. Less noise, more shipping.
           </p>
           <div className="neo-pills">
-            <span># Realtime rooms</span>
-            <span># AI helper</span>
-            <span># Team workflow</span>
+            <span># Rooms = workstreams</span>
+            <span># Decisions stay visible</span>
+            <span># Context never leaves</span>
           </div>
           <div className="neo-actions">
             <button className="neo-btn neo-btn-yellow" onClick={onEnterDashboard}>Enter Dashboard</button>
@@ -46,32 +46,6 @@ export default function Landing({
           </div>
         </div>
 
-        <div className="neo-mock">
-          <div className="mock-top"># launch-room</div>
-          <div className="mock-body">
-            <aside>
-              <strong>Channels</strong>
-              <span># general</span>
-              <span># product</span>
-              <span># frontend</span>
-              <span># backend</span>
-            </aside>
-            <main>
-              <article>
-                <b>Mia</b>
-                <p>Need QA on auth edge cases before release.</p>
-              </article>
-              <article>
-                <b>Noah</b>
-                <p>Load tests are stable. Shipping in 30 minutes.</p>
-              </article>
-              <article>
-                <b>Ava</b>
-                <p>Final UI patch merged. Ready for deploy.</p>
-              </article>
-            </main>
-          </div>
-        </div>
       </div>
 
       <section id="features" className="neo-features">

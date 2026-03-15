@@ -23,7 +23,7 @@
   min-height: 100vh;
   background: var(--neo-bg);
   color: #f7f7f7;
-  padding: 40px 28px 48px;
+  padding: 24px 28px 48px;
 }
 
 .neo-landing::before {
@@ -91,6 +91,9 @@
 .neo-nav-actions {
   display: flex;
   gap: 10px;
+  justify-self: end;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .neo-logo {
@@ -110,9 +113,10 @@
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: 1fr;
   gap: 30px;
   position: relative;
+  justify-items: center;
 }
 
 .neo-shape {
@@ -216,17 +220,21 @@
 }
 
 .neo-copy {
-  background: var(--neo-primary);
-  color: #0b0b0b;
-  padding: 40px;
+  background: transparent;
+  color: #f7f7f7;
+  border: 0;
+  box-shadow: none;
+  padding: 20px 0 10px;
+  max-width: 860px;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.neo-kicker {
-  margin: 0;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.neo-copy:hover {
+  transform: none;
+  box-shadow: none;
 }
+
 
 .neo-copy h1 {
   margin: 14px 0;
@@ -234,10 +242,20 @@
   line-height: 1.02;
 }
 
+.neo-subhead {
+  margin: 8px 0 38px;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 900;
+  color: var(--neo-text-muted);
+  letter-spacing: 0.02em;
+}
+
 .neo-copy p {
   font-size: 1rem;
   max-width: 46ch;
   line-height: 1.65;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .neo-pills {
@@ -245,6 +263,7 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .neo-pills span {
@@ -258,7 +277,8 @@
 
 .neo-pills span:hover {
   transform: translateY(-2px);
-  background: #fff;
+  background: #000;
+  color: #fff;
 }
 
 .neo-actions {
@@ -266,6 +286,7 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .neo-btn {
@@ -390,7 +411,7 @@
 .neo-cta-band,
 .neo-footer {
   max-width: 1200px;
-  margin: 40px auto 0;
+  margin: 120px auto 0;
 }
 
 .neo-features {
@@ -1936,6 +1957,32 @@
   background: var(--neo-surface);
 }
 
+.neo-nav {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  position: static;
+  top: 0;
+  margin: 0 auto 60px !important;
+  padding: 0 !important;
+  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  width: 100%;
+  position: relative;
+}
+
+.neo-nav-links {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .neo-copy,
 .neo-feature-card,
 .neo-process,
@@ -1974,6 +2021,13 @@
 
 .neo-copy {
   padding: 40px;
+}
+
+.neo-copy {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 20px 0 10px !important;
 }
 
 .neo-copy h1 {
