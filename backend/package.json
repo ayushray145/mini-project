@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "seed": "node scripts/seedFakeMessages.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
