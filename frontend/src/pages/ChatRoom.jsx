@@ -230,34 +230,36 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   };
 
   return (
-    <section className="neo-chat-layout wa-chat">
-      <aside className="neo-chat-panel neo-chat-rooms">
-        <div className="neo-chat-title">Rooms</div>
-        <ul className="neo-chat-list">
+    <section className="chat-layout discord-chatroom">
+      <aside className="panel">
+        <div className="panel-title">Channels</div>
+        <ul className="channel-list">
           {rooms.map((room) => (
             <li
               key={room}
-              className={`neo-chat-item ${activeRoom === room ? 'active' : ''}`}
+              className={`channel-item ${activeRoom === room ? 'active' : ''}`}
               onClick={() => setActiveRoom(room)}
             >
-              <span className="neo-chat-hash">#</span>
+              <span className="hash">#</span>
               {room}
             </li>
           ))}
         </ul>
       </aside>
 
-      <div className="neo-chat-panel neo-chat-main">
-        <div className="neo-chat-header">
+      <div className="panel chat-main">
+        <div className="chat-header">
           <strong># {activeRoom}</strong>
-          <span>High-priority engineering sync and build updates</span>
-          {!isWhiteboardOpen && (
-            <button type="button" className="neo-chat-home-btn" onClick={() => setIsWhiteboardOpen(true)}>
-              Whiteboard
-            </button>
-          )}
+          <span>Messages</span>
+          <button
+            type="button"
+            className="discord-header-btn"
+            onClick={() => setIsWhiteboardOpen((prev) => !prev)}
+          >
+            {isWhiteboardOpen ? 'Close Whiteboard' : 'Whiteboard'}
+          </button>
         </div>
-        <div className="neo-message-list" ref={messageListRef}>
+        <div className="message-list" ref={messageListRef}>
           {messages.map((message) => {
             const normalizeUser = (value) => (value || '').trim().toLowerCase();
             const isSelfById = Boolean(message.senderId) && message.senderId === clientIdRef.current;
@@ -266,22 +268,24 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
             return (
               <article
                 key={message.id}
-                className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${isSelf ? 'neo-message-row-self' : ''}`}
+                className={`message-row ${message.isBot ? 'message-row-bot' : ''} ${isSelf ? 'message-row-self' : ''}`}
               >
-                <div className="neo-avatar">{(message.user || '?')[0]}</div>
-                <div className="neo-message-body">
-                  {!isSelf && <div className="wa-sender">{message.user}</div>}
-                  <div className="wa-bubble">
+                <div className="avatar">{(message.user || '?')[0]}</div>
+                <div className="message-body">
+                  <div className="message-meta">
+                    <strong>{isSelf ? 'You' : message.user}</strong>
+                    <span>{message.time}</span>
+                  </div>
+                  <div className="message-content">
                     {isCodeMessage(message.text) ? (
-                      <div className="neo-code-block">
+                      <div className="discord-code-block">
                         <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
                           {parseCodeMessage(message.text).code}
                         </SyntaxHighlighter>
                       </div>
                     ) : (
-                      <p className="wa-text">{message.text}</p>
+                      <p>{message.text}</p>
                     )}
-                    <div className="wa-time">{message.time}</div>
                   </div>
                 </div>
               </article>
@@ -290,8 +294,8 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         </div>
 
         {isWhiteboardOpen && (
-          <div className="neo-whiteboard-wrap">
-            <div className="neo-whiteboard-toolbar">
+          <div className="discord-whiteboard-wrap">
+            <div className="discord-whiteboard-toolbar">
               <strong>Virtual Whiteboard</strong>
               <label>
                 Color
@@ -309,11 +313,10 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
               </label>
               <button type="button" onClick={clearBoard}>Clear</button>
               <button type="button" onClick={downloadBoard}>Save</button>
-              <button type="button" onClick={() => setIsWhiteboardOpen(false)}>Close</button>
             </div>
             <canvas
               ref={canvasRef}
-              className="neo-whiteboard-canvas"
+              className="discord-whiteboard-canvas"
               width={900}
               height={260}
               onPointerDown={startDrawing}
@@ -325,23 +328,15 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         )}
 
         <form
-          className="neo-chat-input-wrap"
+          className="chat-input-wrap"
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
           }}
         >
-          <button
-            type="button"
-            className="neo-chat-ai-btn"
-            onClick={() => setDraftMessage((prev) => (prev ? `${prev} ` : '') + '@Mia ')}
-          >
-            AI
-          </button>
           <input
-            className="neo-chat-draft-input"
             ref={inputRef}
-            placeholder={`Message #${activeRoom} (use \`\`\`js ... \`\`\` for code)`}
+            placeholder={`Message #${activeRoom}`}
             value={draftMessage}
             onChange={(e) => setDraftMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -351,16 +346,15 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
               }
             }}
           />
-          <button type="submit" className="neo-chat-send-btn">Send</button>
         </form>
       </div>
 
-      <aside className="neo-chat-panel neo-chat-members">
-        <div className="neo-chat-title">Online - {members.length}</div>
-        <ul className="neo-member-list">
+      <aside className="panel members-panel">
+        <div className="panel-title">Members</div>
+        <ul className="member-list">
           {members.map((member) => (
             <li key={member} onClick={() => mentionMember(member)}>
-              <span className="neo-status-dot" />
+              <span className="status-dot" />
               {member}
             </li>
           ))}

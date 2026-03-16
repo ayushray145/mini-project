@@ -794,6 +794,56 @@
   gap: 8px;
 }
 
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-auth-btn {
+  border: 2px solid #000;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: var(--neo-secondary);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.topbar-auth-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.auth-screen {
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.auth-switch {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-switch button {
+  border: 2px solid #000;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 246, 196, 0.18);
+  color: var(--neo-text-main);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-switch button:hover {
+  background: rgba(255, 246, 196, 0.28);
+}
+
 .neo-theme-select-wrap {
   display: flex;
   align-items: center;
@@ -1089,6 +1139,188 @@
 
 .chat-input-wrap input:focus {
   outline: 2px solid #5865f2;
+}
+
+.discord-chatroom .panel {
+  border: 1px solid #1e1f22;
+  border-radius: 10px;
+  box-shadow: none;
+  background: #2b2d31;
+}
+
+.discord-chatroom .panel-title {
+  border-bottom: 1px solid #1e1f22;
+  background: #1e1f22;
+  color: #f2f3f5;
+  font-weight: 700;
+}
+
+.discord-chatroom .channel-item {
+  border: 1px solid transparent;
+  color: #c9ccd1;
+}
+
+.discord-chatroom .channel-item:hover,
+.discord-chatroom .channel-item.active {
+  background: #404249;
+  border-color: transparent;
+  color: #fff;
+  transform: none;
+}
+
+.discord-chatroom .hash {
+  color: #949ba4;
+}
+
+.discord-chatroom .chat-header {
+  border-bottom: 1px solid #1e1f22;
+}
+
+.discord-header-btn {
+  margin-left: auto;
+  border: 0;
+  background: #383a40;
+  color: #f2f3f5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.discord-header-btn:hover {
+  background: #404249;
+}
+
+.discord-chatroom .message-list {
+  background: #313338;
+  border-top: 0;
+}
+
+.discord-chatroom .message-row {
+  padding: 2px 6px;
+  border-radius: 6px;
+  justify-content: flex-start;
+}
+
+.discord-chatroom .message-row-self {
+  justify-content: flex-end;
+}
+
+.discord-chatroom .message-row-self .avatar {
+  order: 2;
+}
+
+.discord-chatroom .message-row-self .message-body {
+  order: 1;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.discord-chatroom .message-row-self .message-meta {
+  justify-content: flex-end;
+}
+
+.discord-chatroom .message-row:hover {
+  background: rgba(78, 80, 88, 0.35);
+}
+
+.discord-chatroom .avatar {
+  background: #5865f2;
+}
+
+.discord-chatroom .message-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.discord-chatroom .message-content {
+  display: inline-block;
+  width: fit-content;
+  max-width: min(72%, 720px);
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: #383a40;
+}
+
+.discord-chatroom .message-row-self .message-content {
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.discord-chatroom .message-row-bot .message-content {
+  background: rgba(99, 102, 241, 0.22);
+}
+
+.discord-chatroom .message-content p {
+  margin: 0;
+}
+
+.discord-code-block {
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #1e1f22;
+}
+
+.discord-code-block pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.84rem !important;
+}
+
+.discord-whiteboard-wrap {
+  border-top: 1px solid #1e1f22;
+  background: #2b2d31;
+  padding: 10px 12px 12px;
+}
+
+.discord-whiteboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: #f2f3f5;
+}
+
+.discord-whiteboard-toolbar strong {
+  margin-right: auto;
+}
+
+.discord-whiteboard-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #c9ccd1;
+  background: #1e1f22;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.discord-whiteboard-toolbar button {
+  border: 0;
+  background: #383a40;
+  color: #f2f3f5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.discord-whiteboard-toolbar button:hover {
+  background: #404249;
+}
+
+.discord-whiteboard-canvas {
+  width: 100%;
+  height: 240px;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid #1e1f22;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
 }
 
 .member-list li {

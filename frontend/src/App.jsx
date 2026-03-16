@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Show, SignIn, SignUp, UserButton, useUser } from '@clerk/react';
 import Dashboard from './pages/Dashboard';
 import ChatRoom from './pages/ChatRoom';
 import Landing from './pages/Landing';
@@ -16,6 +17,7 @@ const themePresets = [
 
 function App() {
   const [view, setView] = useState('landing');
+  const [postAuthView, setPostAuthView] = useState('dashboard');
   const [activePreset, setActivePreset] = useState(themePresets[1]);
   const [chatRooms, setChatRooms] = useState(['general', 'backend', 'frontend', 'devops']);
   const [activeChatRoom, setActiveChatRoom] = useState('general');
@@ -36,6 +38,35 @@ function App() {
           statusMessage: 'Building cool things',
         };
   });
+
+  const { isLoaded: clerkLoaded, isSignedIn, user } = useUser();
+
+  React.useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    const displayName = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || 'User';
+    const email = user?.primaryEmailAddress?.emailAddress || '';
+    setAccount((prev) => {
+      const next = { ...prev, displayName, email };
+      localStorage.setItem('devrooms.account', JSON.stringify(next));
+      return next;
+    });
+  }, [clerkLoaded, isSignedIn, user]);
+
+  React.useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    if (view === 'sign-in' || view === 'sign-up') {
+      setView(postAuthView || 'dashboard');
+    }
+  }, [clerkLoaded, isSignedIn, view, postAuthView]);
+
+  const requireAuth = (nextView) => {
+    if (isSignedIn) {
+      setView(nextView);
+      return;
+    }
+    setPostAuthView(nextView);
+    setView('sign-in');
+  };
   const isBrightPreset = activePreset.tone === 'bright';
   const themeVars = {
     '--neo-primary': activePreset.primary,
@@ -60,8 +91,8 @@ function App() {
   if (view === 'landing') {
     return (
       <Landing
-        onEnterDashboard={() => setView('dashboard')}
-        onEnterChat={() => setView('chat-hub')}
+        onEnterDashboard={() => requireAuth('dashboard')}
+        onEnterChat={() => requireAuth('chat-hub')}
         themeVars={themeVars}
       />
     );
@@ -82,56 +113,79 @@ function App() {
             DevRooms
           </a>
           <div className="topbar-actions">
-            <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
+            <button className={view === 'dashboard' ? 'active' : ''} onClick={() => requireAuth('dashboard')}>
               Dashboard
             </button>
-            <button className={view === 'chat' || view === 'chat-hub' ? 'active' : ''} onClick={() => setView('chat-hub')}>
+            <button className={view === 'chat' || view === 'chat-hub' ? 'active' : ''} onClick={() => requireAuth('chat-hub')}>
               Chat Room
             </button>
-            <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>
+            <button className={view === 'settings' ? 'active' : ''} onClick={() => requireAuth('settings')}>
               Settings
             </button>
+          </div>
+          <div className="topbar-user">
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
+            <Show when="signed-out">
+              <button className="topbar-auth-btn" onClick={() => setView('sign-in')}>Sign in</button>
+            </Show>
           </div>
         </header>
 
         <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''}`}>
-          {view === 'dashboard' && <Dashboard />}
-          {view === 'chat-hub' && (
-            <ChatHub
-              onJoinExisting={() => setView('chat')}
-              onCreateRoom={(name, members) => {
-                const slug = name
-                  .trim()
-                  .toLowerCase()
-                  .replace(/[^a-z0-9\s-]/g, '')
-                  .replace(/\s+/g, '-');
-                const roomId = slug || `room-${Date.now()}`;
-                setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
-                setRoomMembers((prev) => ({ ...prev, [roomId]: members }));
-                setActiveChatRoom(roomId);
-                setView('chat');
-              }}
-              contacts={Object.values(roomMembers).flat().filter((value, index, arr) => arr.indexOf(value) === index)}
-            />
-          )}
-          {view === 'chat' && (
-            <ChatRoom
-              onGoHome={() => setView('landing')}
-              account={account}
-              rooms={chatRooms}
-              roomMembers={roomMembers}
-              initialRoom={activeChatRoom}
-            />
-          )}
-          {view === 'settings' && (
-            <Settings
-              presets={themePresets}
-              activePreset={activePreset}
-              onPresetChange={setActivePreset}
-              account={account}
-              onAccountChange={setAccount}
-            />
-          )}
+          <Show when="signed-out">
+            <div className="auth-screen">
+              {view === 'sign-up' ? <SignUp /> : <SignIn />}
+              <div className="auth-switch">
+                {view === 'sign-up' ? (
+                  <button onClick={() => setView('sign-in')}>Have an account? Sign in</button>
+                ) : (
+                  <button onClick={() => setView('sign-up')}>New here? Create an account</button>
+                )}
+              </div>
+            </div>
+          </Show>
+
+          <Show when="signed-in">
+            {view === 'dashboard' && <Dashboard />}
+            {view === 'chat-hub' && (
+              <ChatHub
+                onJoinExisting={() => setView('chat')}
+                onCreateRoom={(name, members) => {
+                  const slug = name
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-');
+                  const roomId = slug || `room-${Date.now()}`;
+                  setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
+                  setRoomMembers((prev) => ({ ...prev, [roomId]: members }));
+                  setActiveChatRoom(roomId);
+                  setView('chat');
+                }}
+                contacts={Object.values(roomMembers).flat().filter((value, index, arr) => arr.indexOf(value) === index)}
+              />
+            )}
+            {view === 'chat' && (
+              <ChatRoom
+                onGoHome={() => setView('landing')}
+                account={account}
+                rooms={chatRooms}
+                roomMembers={roomMembers}
+                initialRoom={activeChatRoom}
+              />
+            )}
+            {view === 'settings' && (
+              <Settings
+                presets={themePresets}
+                activePreset={activePreset}
+                onPresetChange={setActivePreset}
+                account={account}
+                onAccountChange={setAccount}
+              />
+            )}
+          </Show>
         </main>
       </div>
     </div>

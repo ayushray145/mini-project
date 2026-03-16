@@ -20,6 +20,12 @@ Notes:
 
 Frontend dev server already proxies `/api` to `http://localhost:3000` via `frontend/vite.config.js`.
 
+## Auth (Clerk)
+The frontend uses Clerk for authentication. For local dev:
+1. Create a Clerk application (in the Clerk dashboard).
+2. Add `VITE_CLERK_PUBLISHABLE_KEY` to `frontend/.env` (see `frontend/.env.example`).
+3. Restart the Vite dev server after changing env vars.
+
 ## Vercel
 This repo is structured for Vercel deployments with serverless functions:
 - `api/health.js`
