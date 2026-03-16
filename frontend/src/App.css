@@ -98,15 +98,37 @@
 
 .neo-logo {
   font-size: 1.4rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--neo-primary);
-  text-shadow: 3px 3px 0 var(--neo-secondary);
+  text-shadow: none;
   transition: transform 0.18s ease;
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .neo-logo:hover {
-  transform: translateY(-2px) rotate(-1deg);
+  transform: none;
+}
+
+.neo-logo::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 2px;
+  background: var(--neo-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.neo-logo:hover::after {
+  transform: scaleX(1);
 }
 
 .neo-hero {
@@ -753,9 +775,13 @@
 
 .brand {
   font-size: 1.05rem;
-  font-weight: 900;
+  font-weight: 700;
   color: #111;
   letter-spacing: 0.04em;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .topbar-actions {
@@ -895,6 +921,9 @@
 
 .content-panel {
   padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .content-panel h1 {
@@ -902,6 +931,76 @@
   color: var(--neo-primary);
   font-size: 2rem;
 }
+
+.dashboard-channel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-channel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-download-btn {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.dashboard-download-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.dashboard-channel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.dashboard-message-list {
+  padding-right: 2px;
+}
+
+.dashboard-message {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dashboard-message:last-child {
+  border-bottom: none;
+}
+
+.dashboard-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.dashboard-message-meta strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.dashboard-message p {
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--neo-text-main);
+}
+
 
 .muted {
   color: var(--neo-text-main);
@@ -971,6 +1070,23 @@
   color: var(--neo-secondary);
   font-weight: 800;
   font-size: 0.8rem;
+}
+
+.status-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-online {
+  color: #22c55e;
+}
+
+.status-available {
+  color: #facc15;
+}
+
+.status-away {
+  color: #ef4444;
 }
 
 .chat-main {
@@ -1520,6 +1636,7 @@
   border-radius: 8px;
   padding: 7px 8px;
   margin-bottom: 8px;
+  cursor: pointer;
 }
 
 .neo-member-list li:hover {
@@ -1990,7 +2107,11 @@
 .neo-footer,
 .stat-card,
 .activity-card {
-  color: var(--neo-text-main);
+  color: #fff;
+}
+
+.stat-label {
+  color: #fff;
 }
 
 .neo-copy:hover,

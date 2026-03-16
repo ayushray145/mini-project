@@ -69,7 +69,9 @@ function App() {
 
       <div className="discord-shell">
         <header className="discord-topbar">
-          <div className="brand">DevRooms</div>
+          <button type="button" className="brand" onClick={() => setView('landing')}>
+            DevRooms
+          </button>
           <div className="topbar-actions">
             <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
               Dashboard

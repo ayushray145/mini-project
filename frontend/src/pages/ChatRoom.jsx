@@ -9,6 +9,7 @@ const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 export default function ChatRoom({ onGoHome, account }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
+  const inputRef = useRef(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
   const activeRoomRef = useRef('general');
@@ -184,6 +185,16 @@ export default function ChatRoom({ onGoHome, account }) {
     };
   };
 
+  const mentionMember = (member) => {
+    setDraftMessage((prev) => {
+      const escaped = member.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(^|\\s)@${escaped}(\\s|$)`);
+      if (pattern.test(prev)) return prev;
+      return `${prev ? `${prev} ` : ''}@${member} `;
+    });
+    inputRef.current?.focus();
+  };
+
   return (
     <section className="neo-chat-layout">
       <aside className="neo-chat-panel neo-chat-rooms">
@@ -295,6 +306,7 @@ export default function ChatRoom({ onGoHome, account }) {
           </button>
           <input
             className="neo-chat-draft-input"
+            ref={inputRef}
             placeholder={`Message #${activeRoom} (use \`\`\`js ... \`\`\` for code)`}
             value={draftMessage}
             onChange={(e) => setDraftMessage(e.target.value)}
@@ -313,7 +325,7 @@ export default function ChatRoom({ onGoHome, account }) {
         <div className="neo-chat-title">Online - {members.length}</div>
         <ul className="neo-member-list">
           {members.map((member) => (
-            <li key={member}>
+            <li key={member} onClick={() => mentionMember(member)}>
               <span className="neo-status-dot" />
               {member}
             </li>

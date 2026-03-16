@@ -6,7 +6,13 @@ export default function Landing({
   return (
     <section className="neo-landing" style={themeVars}>
       <header className="neo-nav">
-        <div className="neo-logo">DEVROOMS</div>
+        <button
+          type="button"
+          className="neo-logo"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          DEVROOMS
+        </button>
         <nav className="neo-nav-links">
           <a href="#features">Features</a>
           <a href="#workflow">Workflow</a>
