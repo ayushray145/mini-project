@@ -32,6 +32,7 @@ This repo is structured for Vercel deployments with serverless functions:
 - `api/message.js`
 
 Set these environment variables in Vercel:
+- `MONGODB_URI` (optional, enables chat persistence)
 - `PUSHER_APP_ID`
 - `PUSHER_KEY`
 - `PUSHER_SECRET`

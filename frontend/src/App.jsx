@@ -45,8 +45,10 @@ function App() {
     if (!clerkLoaded || !isSignedIn) return;
     const displayName = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || 'User';
     const email = user?.primaryEmailAddress?.emailAddress || '';
+    const clerkUserId = user?.id;
+    const avatarUrl = user?.imageUrl;
     setAccount((prev) => {
-      const next = { ...prev, displayName, email };
+      const next = { ...prev, clerkUserId, avatarUrl, displayName, email };
       localStorage.setItem('devrooms.account', JSON.stringify(next));
       return next;
     });

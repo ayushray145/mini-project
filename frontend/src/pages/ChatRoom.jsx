@@ -205,6 +205,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         time: new Date().toISOString(),
         room: activeRoom,
         clientId: clientIdRef.current,
+        clerkUserId: account?.clerkUserId,
       }),
     });
   };
