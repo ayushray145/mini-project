@@ -13,6 +13,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
   const activeRoomRef = useRef('general');
+  const clientIdRef = useRef('');
   const [brushColor, setBrushColor] = useState('#111111');
   const [brushSize, setBrushSize] = useState(4);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
@@ -28,6 +29,17 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
       return [...prev, nextMessage];
     });
   };
+
+  useEffect(() => {
+    const storedId = window.localStorage.getItem('chat_client_id');
+    const generated =
+      storedId ||
+      `c-${
+        window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      }`;
+    clientIdRef.current = generated;
+    window.localStorage.setItem('chat_client_id', generated);
+  }, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem('chat_username');
@@ -104,6 +116,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   const normalizeMessage = (payload) => ({
     id: payload.id || `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     user: payload.username,
+    senderId: payload.clientId || payload.senderId || '',
     time: payload.time
       ? new Date(payload.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : getCurrentTime(),
@@ -179,6 +192,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
       username,
       time: new Date().toISOString(),
       room: activeRoom,
+      clientId: clientIdRef.current,
     });
     appendMessage(optimistic);
     fetch('/api/message', {
@@ -190,6 +204,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         username,
         time: new Date().toISOString(),
         room: activeRoom,
+        clientId: clientIdRef.current,
       }),
     });
   };
@@ -244,7 +259,10 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         </div>
         <div className="neo-message-list" ref={messageListRef}>
           {messages.map((message) => {
-            const isSelf = message.user === username;
+            const normalizeUser = (value) => (value || '').trim().toLowerCase();
+            const isSelfById = Boolean(message.senderId) && message.senderId === clientIdRef.current;
+            const isSelfByName = normalizeUser(message.user) === normalizeUser(username);
+            const isSelf = isSelfById || isSelfByName;
             return (
               <article
                 key={message.id}

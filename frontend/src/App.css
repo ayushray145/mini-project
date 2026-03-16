@@ -1314,6 +1314,7 @@
   padding: 16px 16px 12px;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
   background:
     linear-gradient(rgba(11, 11, 11, 0.82), rgba(11, 11, 11, 0.82)),
@@ -1334,7 +1335,9 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  width: min(88%, 720px);
+  align-self: flex-start;
+  width: fit-content;
+  max-width: min(78%, 720px);
   border: 2px solid #000;
   background: var(--neo-chat-card-bg);
   color: var(--neo-chat-card-text);
@@ -1349,8 +1352,17 @@
 }
 
 .neo-message-row-self {
-  margin-left: auto;
+  align-self: flex-end;
+  flex-direction: row-reverse;
   background: color-mix(in srgb, var(--neo-secondary) 18%, var(--neo-chat-card-bg));
+}
+
+.neo-message-row-self .neo-message-body {
+  text-align: right;
+}
+
+.neo-message-row-self .neo-message-meta {
+  justify-content: flex-end;
 }
 
 .neo-message-row-bot {
@@ -1853,7 +1865,8 @@
   }
 
   .neo-message-row {
-    width: 100%;
+    width: fit-content;
+    max-width: 92%;
     padding: 8px;
     gap: 8px;
   }

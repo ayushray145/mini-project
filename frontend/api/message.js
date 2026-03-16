@@ -26,12 +26,15 @@ export default async function handler(req, res) {
     const message = body?.message?.trim?.() || '';
     const username = body?.username?.trim?.() || 'Guest';
     const time = body?.time || new Date().toISOString();
+    const id = body?.id;
+    const room = body?.room?.trim?.() || 'general';
+    const clientId = body?.clientId?.trim?.() || undefined;
 
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Missing message' });
     }
 
-    await pusher.trigger('chat', 'message', { message, username, time });
+    await pusher.trigger('chat', 'message', { id, room, message, username, time, clientId });
     return res.status(200).json({ ok: true });
   } catch (error) {
     console.error('Pusher trigger failed', error);

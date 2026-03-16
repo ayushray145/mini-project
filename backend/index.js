@@ -57,6 +57,7 @@ app.post('/api/message', async (req, res) => {
     const time = req.body?.time || new Date().toISOString();
     const id = req.body?.id;
     const room = req.body?.room?.trim?.() || 'general';
+    const clientId = req.body?.clientId?.trim?.() || undefined;
 
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Missing message' });
@@ -68,6 +69,7 @@ app.post('/api/message', async (req, res) => {
       message,
       username,
       time,
+      clientId,
     });
 
     return res.status(200).json({ ok: true });
