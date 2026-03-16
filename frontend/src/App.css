@@ -97,21 +97,21 @@
 }
 
 .neo-logo {
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--neo-primary);
   text-shadow: none;
-  transition: transform 0.18s ease;
-  position: relative;
+  transition: color 0.18s ease;
   background: transparent;
   border: 0;
   padding: 0;
-  cursor: pointer;
+  appearance: none;
+  position: relative;
 }
 
 .neo-logo:hover {
-  transform: none;
+  color: #fff;
 }
 
 .neo-logo::after {
@@ -121,7 +121,7 @@
   bottom: -6px;
   width: 100%;
   height: 2px;
-  background: var(--neo-primary);
+  background: currentColor;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.2s ease;
@@ -258,18 +258,18 @@
 }
 
 
+.neo-kicker {
+  margin: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: clamp(2rem, 2.0ivw, 1.55rem);
+}
+
 .neo-copy h1 {
   margin: 14px 0;
   font-size: clamp(2rem, 4vw, 3.5rem);
   line-height: 1.02;
-}
-
-.neo-subhead {
-  margin: 8px 0 38px;
-  font-size: clamp(1.6rem, 3vw, 2.5rem);
-  font-weight: 900;
-  color: var(--neo-text-muted);
-  letter-spacing: 0.02em;
 }
 
 .neo-copy p {
@@ -299,8 +299,7 @@
 
 .neo-pills span:hover {
   transform: translateY(-2px);
-  background: #000;
-  color: #fff;
+  background: #fff;
 }
 
 .neo-actions {
@@ -362,6 +361,16 @@
 .neo-btn-dark {
   background: #111;
   color: var(--neo-primary);
+}
+
+.neo-btn-light {
+  background: #fff;
+  color: #111;
+}
+
+.neo-btn-green {
+  background: #22c55e;
+  color: #0b1410;
 }
 
 .neo-mock {
@@ -433,7 +442,7 @@
 .neo-cta-band,
 .neo-footer {
   max-width: 1200px;
-  margin: 120px auto 0;
+  margin: 140px auto 0;
 }
 
 .neo-features {
@@ -775,13 +784,9 @@
 
 .brand {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 900;
   color: #111;
   letter-spacing: 0.04em;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
 }
 
 .topbar-actions {
@@ -921,9 +926,6 @@
 
 .content-panel {
   padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .content-panel h1 {
@@ -931,76 +933,6 @@
   color: var(--neo-primary);
   font-size: 2rem;
 }
-
-.dashboard-channel-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.dashboard-channel-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.dashboard-download-btn {
-  border: 2px solid #000;
-  background: var(--neo-secondary);
-  color: var(--neo-on-secondary);
-  font-weight: 800;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  border-radius: 999px;
-}
-
-.dashboard-download-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 #000;
-}
-
-.dashboard-channel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-top: 8px;
-  width: 100%;
-}
-
-.dashboard-message-list {
-  padding-right: 2px;
-}
-
-.dashboard-message {
-  padding: 8px 4px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.dashboard-message:last-child {
-  border-bottom: none;
-}
-
-.dashboard-message-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.dashboard-message-meta strong {
-  color: #fff;
-  font-size: 0.95rem;
-}
-
-.dashboard-message p {
-  margin: 0;
-  font-size: 0.98rem;
-  color: var(--neo-text-main);
-}
-
 
 .muted {
   color: var(--neo-text-main);
@@ -1070,23 +1002,6 @@
   color: var(--neo-secondary);
   font-weight: 800;
   font-size: 0.8rem;
-}
-
-.status-tag {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.status-online {
-  color: #22c55e;
-}
-
-.status-available {
-  color: #facc15;
-}
-
-.status-away {
-  color: #ef4444;
 }
 
 .chat-main {
@@ -1636,7 +1551,6 @@
   border-radius: 8px;
   padding: 7px 8px;
   margin-bottom: 8px;
-  cursor: pointer;
 }
 
 .neo-member-list li:hover {
@@ -2107,11 +2021,7 @@
 .neo-footer,
 .stat-card,
 .activity-card {
-  color: #fff;
-}
-
-.stat-label {
-  color: #fff;
+  color: var(--neo-text-main);
 }
 
 .neo-copy:hover,
@@ -2127,8 +2037,9 @@
 }
 
 .neo-logo {
-  text-shadow: none;
   color: var(--neo-text-main);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .neo-nav-links a {
@@ -2153,6 +2064,14 @@
 
 .neo-copy h1 {
   color: var(--neo-text-main);
+}
+
+.neo-subhead {
+  margin: 8px 0 48px;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 900;
+  color: var(--neo-text-muted);
+  letter-spacing: 0.02em;
 }
 
 .neo-pills span {
@@ -2221,6 +2140,13 @@
 
 .brand {
   color: var(--neo-text-main);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  cursor: pointer;
+  appearance: none;
+  text-decoration: none;
 }
 
 .discord-workspace {
@@ -2228,6 +2154,205 @@
     radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.06), transparent 35%),
     radial-gradient(circle at 80% 15%, rgba(99, 102, 241, 0.06), transparent 35%),
     var(--neo-bg);
+}
+
+/* Dashboard channel view */
+.dashboard-channel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-channel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-channel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.dashboard-message {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dashboard-message:last-child {
+  border-bottom: none;
+}
+
+.dashboard-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.dashboard-message-meta strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.dashboard-message p {
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--neo-text-main);
+}
+
+.dashboard-download-btn {
+  border: 2px solid #000;
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+  font-weight: 800;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.dashboard-download-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+/* Dashboard contact status colors */
+.status-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.status-online {
+  color: #22c55e;
+}
+
+.status-available {
+  color: #facc15;
+}
+
+.status-away {
+  color: #ef4444;
+}
+
+/* Dashboard stats text */
+.stat-card,
+.stat-card strong,
+.stat-label {
+  color: #fff;
+}
+
+/* Chatroom member mention affordance */
+.neo-member-list li {
+  cursor: pointer;
+}
+
+/* Chat hub (ensure latest overrides) */
+.chat-hub {
+  max-width: 900px;
+  margin: 95px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  align-items: center;
+  text-align: center;
+}
+
+.chat-hub.chat-hub-create {
+  margin-top: -8px;
+}
+
+.chat-hub-header {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: -8px;
+}
+
+.chat-hub-header h1 {
+  margin: 0;
+  font-size: clamp(3.2rem, 5.8vw, 4.6rem);
+}
+
+.chat-hub-header .muted {
+  max-width: 100%;
+  font-size: 0.98rem;
+  margin-top: 4px;
+}
+
+.chat-hub-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.chat-hub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-items: center;
+  width: 100%;
+  margin-top: -8px;
+}
+
+.chat-hub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(520px, 100%);
+}
+
+.chat-hub-field label {
+  font-weight: 800;
+  color: var(--neo-text-main);
+  text-align: center;
+}
+
+.chat-hub-field input {
+  border: 2px solid #000;
+  padding: 12px 14px;
+  font-size: 1rem;
+  background: var(--neo-input-bg);
+  color: var(--neo-input-text);
+}
+
+.chat-hub-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.chat-hub-chip {
+  border: 2px solid #000;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: var(--neo-surface);
+  color: var(--neo-text-main);
+  cursor: pointer;
+}
+
+.chat-hub-chip.active {
+  background: var(--neo-secondary);
+  color: var(--neo-on-secondary);
+}
+
+.chat-hub-error {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.chat-hub-actions .neo-btn-light {
+  background: #fff !important;
+  color: #111 !important;
 }
 
 .panel-title,

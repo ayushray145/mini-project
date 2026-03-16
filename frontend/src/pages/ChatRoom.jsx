@@ -3,10 +3,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { createPusherClient } from '../lib/pusher';
 
-const rooms = ['general', 'backend', 'frontend', 'devops'];
-const members = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
+const defaultRooms = ['general', 'backend', 'frontend', 'devops'];
+const defaultMembers = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
-export default function ChatRoom({ onGoHome, account }) {
+export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, roomMembers, initialRoom }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
   const inputRef = useRef(null);
@@ -19,7 +19,8 @@ export default function ChatRoom({ onGoHome, account }) {
   const [messages, setMessages] = useState([]);
   const [draftMessage, setDraftMessage] = useState('');
   const [username, setUsername] = useState('');
-  const [activeRoom, setActiveRoom] = useState('general');
+  const [activeRoom, setActiveRoom] = useState(initialRoom || rooms[0] || 'general');
+  const members = roomMembers?.[activeRoom] || defaultMembers;
 
   const appendMessage = (nextMessage) => {
     setMessages((prev) => {
@@ -55,6 +56,20 @@ export default function ChatRoom({ onGoHome, account }) {
   useEffect(() => {
     activeRoomRef.current = activeRoom;
   }, [activeRoom]);
+
+  useEffect(() => {
+    if (!rooms.includes(activeRoom)) {
+      const nextRoom = rooms[0] || 'general';
+      setActiveRoom(nextRoom);
+      activeRoomRef.current = nextRoom;
+    }
+  }, [rooms, activeRoom]);
+
+  useEffect(() => {
+    if (initialRoom && rooms.includes(initialRoom)) {
+      setActiveRoom(initialRoom);
+    }
+  }, [initialRoom, rooms]);
 
   useEffect(() => {
     let pusher;
@@ -222,9 +237,6 @@ export default function ChatRoom({ onGoHome, account }) {
               Whiteboard
             </button>
           )}
-          <button type="button" className="neo-chat-home-btn" onClick={onGoHome}>
-            Home
-          </button>
         </div>
         <div className="neo-message-list" ref={messageListRef}>
           {messages.map((message) => {

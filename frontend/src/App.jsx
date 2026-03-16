@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import ChatRoom from './pages/ChatRoom';
 import Landing from './pages/Landing';
 import Settings from './pages/Settings';
+import ChatHub from './pages/ChatHub';
 import './App.css';
 
 const themePresets = [
@@ -16,6 +17,14 @@ const themePresets = [
 function App() {
   const [view, setView] = useState('landing');
   const [activePreset, setActivePreset] = useState(themePresets[1]);
+  const [chatRooms, setChatRooms] = useState(['general', 'backend', 'frontend', 'devops']);
+  const [activeChatRoom, setActiveChatRoom] = useState('general');
+  const [roomMembers, setRoomMembers] = useState({
+    general: ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'],
+    backend: ['Noah', 'Liam', 'Ethan'],
+    frontend: ['Ava', 'Mia (AI)', 'Sofia'],
+    devops: ['Liam', 'Noah'],
+  });
   const [account, setAccount] = useState(() => {
     const stored = localStorage.getItem('devrooms.account');
     return stored
@@ -52,7 +61,7 @@ function App() {
     return (
       <Landing
         onEnterDashboard={() => setView('dashboard')}
-        onEnterChat={() => setView('chat')}
+        onEnterChat={() => setView('chat-hub')}
         themeVars={themeVars}
       />
     );
@@ -60,23 +69,23 @@ function App() {
 
   return (
     <div className="discord-app" style={themeVars}>
-      <aside className="server-rail">
-        <button className={`server-pill ${view === 'dashboard' ? 'active' : ''}`} onClick={() => setView('dashboard')}>DR</button>
-        <button className={`server-pill ${view === 'chat' ? 'active' : ''}`} onClick={() => setView('chat')}>AI</button>
-        <button className="server-pill">JS</button>
-        <button className="server-pill" onClick={() => setView('landing')}>+</button>
-      </aside>
-
       <div className="discord-shell">
-        <header className="discord-topbar">
-          <button type="button" className="brand" onClick={() => setView('landing')}>
+        <header className={`discord-topbar ${view === 'chat-hub' ? 'discord-topbar-clear' : ''}`}>
+          <a
+            href="#"
+            className="brand"
+            onClick={(event) => {
+              event.preventDefault();
+              setView('landing');
+            }}
+          >
             DevRooms
-          </button>
+          </a>
           <div className="topbar-actions">
             <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
               Dashboard
             </button>
-            <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>
+            <button className={view === 'chat' || view === 'chat-hub' ? 'active' : ''} onClick={() => setView('chat-hub')}>
               Chat Room
             </button>
             <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>
@@ -85,9 +94,35 @@ function App() {
           </div>
         </header>
 
-        <main className="discord-workspace">
+        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''}`}>
           {view === 'dashboard' && <Dashboard />}
-          {view === 'chat' && <ChatRoom onGoHome={() => setView('landing')} account={account} />}
+          {view === 'chat-hub' && (
+            <ChatHub
+              onJoinExisting={() => setView('chat')}
+              onCreateRoom={(name, members) => {
+                const slug = name
+                  .trim()
+                  .toLowerCase()
+                  .replace(/[^a-z0-9\s-]/g, '')
+                  .replace(/\s+/g, '-');
+                const roomId = slug || `room-${Date.now()}`;
+                setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
+                setRoomMembers((prev) => ({ ...prev, [roomId]: members }));
+                setActiveChatRoom(roomId);
+                setView('chat');
+              }}
+              contacts={Object.values(roomMembers).flat().filter((value, index, arr) => arr.indexOf(value) === index)}
+            />
+          )}
+          {view === 'chat' && (
+            <ChatRoom
+              onGoHome={() => setView('landing')}
+              account={account}
+              rooms={chatRooms}
+              roomMembers={roomMembers}
+              initialRoom={activeChatRoom}
+            />
+          )}
           {view === 'settings' && (
             <Settings
               presets={themePresets}
