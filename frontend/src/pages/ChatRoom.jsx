@@ -70,6 +70,39 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   }, [activeRoom]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        const resp = await fetch(`/api/messages?room=${encodeURIComponent(activeRoom)}`);
+        const data = await resp.json();
+        if (cancelled) return;
+        if (!data?.ok) return;
+        if (data.room && data.room !== activeRoomRef.current) return;
+
+        setMessages(
+          (Array.isArray(data.messages) ? data.messages : []).map((payload) =>
+            normalizeMessage({
+              ...payload,
+              // Prefer stable sender ids from DB fetch for self/other styling.
+              senderId: payload.senderId || payload.clerkUserId || payload.clientId,
+            }),
+          ),
+        );
+      } catch (error) {
+        // Non-fatal: realtime still works.
+        console.warn('Failed to load chat history', error);
+      }
+    };
+
+    loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRoom]);
+
+  useEffect(() => {
     if (!rooms.includes(activeRoom)) {
       const nextRoom = rooms[0] || 'general';
       setActiveRoom(nextRoom);
@@ -116,7 +149,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   const normalizeMessage = (payload) => ({
     id: payload.id || `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     user: payload.username,
-    senderId: payload.clientId || payload.senderId || '',
+    senderId: payload.senderId || payload.clerkUserId || payload.clientId || '',
     time: payload.time
       ? new Date(payload.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : getCurrentTime(),
@@ -263,7 +296,8 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         <div className="message-list" ref={messageListRef}>
           {messages.map((message) => {
             const normalizeUser = (value) => (value || '').trim().toLowerCase();
-            const isSelfById = Boolean(message.senderId) && message.senderId === clientIdRef.current;
+            const myIds = [clientIdRef.current, account?.clerkUserId].filter(Boolean);
+            const isSelfById = Boolean(message.senderId) && myIds.includes(message.senderId);
             const isSelfByName = normalizeUser(message.user) === normalizeUser(username);
             const isSelf = isSelfById || isSelfByName;
             return (

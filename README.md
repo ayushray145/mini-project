@@ -7,6 +7,7 @@
 ## Backend
 For local dev, the backend lives in `backend/` and exposes:
 - `GET /api/health` for basic status.
+- `GET /api/messages?room=general` to fetch recent message history (requires MongoDB).
 - `POST /api/message` to broadcast chat messages via Pusher.
 
 Setup:

@@ -48,6 +48,48 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/messages', async (req, res) => {
+  try {
+    const room = String(req.query?.room || 'general').trim() || 'general';
+    const limit = Math.min(Number(req.query?.limit || 50) || 50, 200);
+
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+
+    const conversation = await Conversation.findOne({ type: 'room', slug: room }).select('_id');
+    if (!conversation) return res.json({ ok: true, room, messages: [] });
+
+    const docs = await Message.find({ conversationId: conversation._id, deletedAt: { $exists: false } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('senderId', 'displayName clerkUserId clientId avatarUrl');
+
+    // Return chronological order to render naturally in the UI.
+    const messages = docs
+      .reverse()
+      .map((doc) => ({
+        dbMessageId: String(doc._id),
+        id: doc.metadata?.clientMessageId || String(doc._id),
+        room,
+        message: doc.body,
+        username: doc.senderId?.displayName || 'Unknown',
+        time: doc.createdAt.toISOString(),
+        clientId: doc.metadata?.clientId,
+        clerkUserId: doc.metadata?.clerkUserId || doc.senderId?.clerkUserId,
+        senderId: doc.metadata?.clerkUserId || doc.metadata?.clientId || doc.senderId?.clerkUserId || doc.senderId?.clientId,
+        isBot: false,
+      }));
+
+    return res.json({ ok: true, room, messages });
+  } catch (error) {
+    console.error('Fetch messages failed', error);
+    return res.status(500).json({ ok: false, error: 'Fetch messages failed' });
+  }
+});
+
 app.post('/api/message', async (req, res) => {
   if (!pusher) {
     return res.status(500).json({ ok: false, error: 'Pusher not configured' });
