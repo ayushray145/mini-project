@@ -74,25 +74,29 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   useEffect(() => {
     let pusher;
     let channel;
+    let onMessage;
     try {
       pusher = createPusherClient();
       channel = pusher.subscribe('chat');
-      channel.bind('message', (payload) => {
+      onMessage = (payload) => {
         if (!payload?.message || !payload?.username) return;
         if (payload.room && payload.room !== activeRoomRef.current) return;
         appendMessage(normalizeMessage(payload));
-      });
+      };
+      channel.bind('message', onMessage);
     } catch (error) {
       console.warn('Pusher client unavailable', error);
     }
 
     return () => {
-      if (channel) {
-        channel.unbind_all();
-        channel.unsubscribe();
-      }
-      if (pusher) {
-        pusher.disconnect();
+      // Pusher JS unsubscribes via the client, not the channel instance.
+      // Guarded so we don't throw during React strict-mode effect replays/HMR.
+      try {
+        if (channel && onMessage) channel.unbind('message', onMessage);
+        if (pusher) pusher.unsubscribe('chat');
+        if (pusher) pusher.disconnect();
+      } catch (error) {
+        console.warn('Pusher cleanup failed', error);
       }
     };
   }, []);

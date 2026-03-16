@@ -1,0 +1,13 @@
+node_modules/
+
+# Frontend build output
+frontend/dist/
+
+# Local environment files (use *.env.example templates instead)
+.env
+frontend/.env
+backend/.env
+
+# Logs
+*.log
+

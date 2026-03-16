@@ -16,6 +16,7 @@ Setup:
 
 Notes:
 - Pusher is required for chat delivery in this minimal backend.
+- Ensure `frontend/.env` uses the same Pusher `KEY` + `CLUSTER` as the backend, otherwise the chatroom realtime stream will not receive messages.
 
 Frontend dev server already proxies `/api` to `http://localhost:3000` via `frontend/vite.config.js`.
 
