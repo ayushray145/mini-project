@@ -19,6 +19,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [draftMessage, setDraftMessage] = useState('');
+  const [historyWarning, setHistoryWarning] = useState('');
   const [username, setUsername] = useState('');
   const [activeRoom, setActiveRoom] = useState(initialRoom || rooms[0] || 'general');
   const members = roomMembers?.[activeRoom] || defaultMembers;
@@ -75,10 +76,14 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
     const loadHistory = async () => {
       try {
         const resp = await fetch(`/api/messages?room=${encodeURIComponent(activeRoom)}`);
-        const data = await resp.json();
+        const data = await resp.json().catch(() => null);
         if (cancelled) return;
-        if (!data?.ok) return;
+        if (!resp.ok || !data?.ok) {
+          setHistoryWarning(data?.error ? `History: ${data.error}` : 'History: unavailable');
+          return;
+        }
         if (data.room && data.room !== activeRoomRef.current) return;
+        setHistoryWarning('');
 
         setMessages(
           (Array.isArray(data.messages) ? data.messages : []).map((payload) =>
@@ -91,6 +96,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         );
       } catch (error) {
         // Non-fatal: realtime still works.
+        setHistoryWarning(`History: ${error?.message || 'unavailable'}`);
         console.warn('Failed to load chat history', error);
       }
     };
@@ -248,7 +254,12 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
           return;
         }
         if (data.dbStored === false) {
+          const note = data.dbError ? `Storage: ${data.dbError}` : 'Storage: message not saved';
+          setHistoryWarning(note);
           console.warn('Message was sent but NOT stored in MongoDB', data.dbError);
+        } else {
+          // Clear warning once we get a successful store.
+          setHistoryWarning('');
         }
       })
       .catch((error) => {
@@ -306,6 +317,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
             {isWhiteboardOpen ? 'Close Whiteboard' : 'Whiteboard'}
           </button>
         </div>
+        {historyWarning && <div className="chat-warning">{historyWarning}</div>}
         <div className="message-list" ref={messageListRef}>
           {messages.map((message) => {
             const normalizeUser = (value) => (value || '').trim().toLowerCase();

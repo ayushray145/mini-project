@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
-const { MONGODB_URI, ALLOWED_ORIGIN } = process.env;
+const { MONGODB_URI, MONGODB_DB, ALLOWED_ORIGIN } = process.env;
 
 let mongoPromise = null;
 async function connectToMongo() {
   if (!MONGODB_URI) return null;
   if (!mongoPromise) {
-    mongoPromise = mongoose.connect(MONGODB_URI, { autoIndex: true });
+    mongoPromise = mongoose.connect(MONGODB_URI, { autoIndex: true, ...(MONGODB_DB ? { dbName: MONGODB_DB } : {}) });
   }
   return mongoPromise;
 }
@@ -127,4 +127,3 @@ const handler = async (req, res) => {
 };
 
 module.exports = handler;
-

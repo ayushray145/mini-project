@@ -6,10 +6,12 @@ let logged = false;
 export async function connectToMongo() {
   const uri = process.env.MONGODB_URI;
   if (!uri) return null;
+  const dbName = process.env.MONGODB_DB || undefined;
 
   if (!connectionPromise) {
     connectionPromise = mongoose.connect(uri, {
       autoIndex: true,
+      ...(dbName ? { dbName } : {}),
     });
   }
 
