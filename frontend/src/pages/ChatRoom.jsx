@@ -230,7 +230,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   };
 
   return (
-    <section className="neo-chat-layout">
+    <section className="neo-chat-layout wa-chat">
       <aside className="neo-chat-panel neo-chat-rooms">
         <div className="neo-chat-title">Rooms</div>
         <ul className="neo-chat-list">
@@ -268,21 +268,21 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
                 key={message.id}
                 className={`neo-message-row ${message.isBot ? 'neo-message-row-bot' : ''} ${isSelf ? 'neo-message-row-self' : ''}`}
               >
-                <div className="neo-avatar">{isSelf ? 'Y' : message.user[0]}</div>
+                <div className="neo-avatar">{(message.user || '?')[0]}</div>
                 <div className="neo-message-body">
-                  <div className="neo-message-meta">
-                    <strong>{isSelf ? 'You' : message.user}</strong>
-                    <span>{message.time}</span>
+                  {!isSelf && <div className="wa-sender">{message.user}</div>}
+                  <div className="wa-bubble">
+                    {isCodeMessage(message.text) ? (
+                      <div className="neo-code-block">
+                        <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
+                          {parseCodeMessage(message.text).code}
+                        </SyntaxHighlighter>
+                      </div>
+                    ) : (
+                      <p className="wa-text">{message.text}</p>
+                    )}
+                    <div className="wa-time">{message.time}</div>
                   </div>
-                  {isCodeMessage(message.text) ? (
-                    <div className="neo-code-block">
-                      <SyntaxHighlighter language={parseCodeMessage(message.text).language} style={oneDark}>
-                        {parseCodeMessage(message.text).code}
-                      </SyntaxHighlighter>
-                    </div>
-                  ) : (
-                    <p>{message.text}</p>
-                  )}
                 </div>
               </article>
             );
