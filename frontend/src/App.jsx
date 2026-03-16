@@ -21,6 +21,8 @@ function App() {
   const [activePreset, setActivePreset] = useState(themePresets[1]);
   const [chatRooms, setChatRooms] = useState(['general', 'backend', 'frontend', 'devops']);
   const [activeChatRoom, setActiveChatRoom] = useState('general');
+  const [roomLabels, setRoomLabels] = useState({});
+  const [directMessages, setDirectMessages] = useState([]);
   const [roomMembers, setRoomMembers] = useState({
     general: ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'],
     backend: ['Noah', 'Liam', 'Ethan'],
@@ -61,6 +63,49 @@ function App() {
     }
   }, [clerkLoaded, isSignedIn, view, postAuthView]);
 
+  React.useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    if (view !== 'chat-hub') return;
+    if (!account?.clerkUserId) return;
+
+    let cancelled = false;
+    fetch(`/api/contacts?clerkUserId=${encodeURIComponent(account.clerkUserId)}`)
+      .then((resp) => resp.json().then((data) => ({ resp, data })).catch(() => ({ resp, data: null })))
+      .then(({ resp, data }) => {
+        if (cancelled) return;
+        if (!resp.ok || !data?.ok) return;
+        const list = Array.isArray(data.contacts) ? data.contacts : [];
+        const dms = list
+          .filter((x) => x?.dmRoom && x?.contact?.displayName)
+          .map((x) => ({ roomId: x.dmRoom, label: x.contact.displayName }));
+        setDirectMessages(dms);
+
+        // Ensure DM rooms appear in the chat room list with labels.
+        setChatRooms((prev) => {
+          const next = [...prev];
+          for (const dm of dms) {
+            if (!next.includes(dm.roomId)) next.push(dm.roomId);
+          }
+          return next;
+        });
+        setRoomLabels((prev) => {
+          const next = { ...prev };
+          for (const dm of dms) next[dm.roomId] = dm.label;
+          return next;
+        });
+        setRoomMembers((prev) => {
+          const next = { ...prev };
+          for (const dm of dms) next[dm.roomId] = [dm.label];
+          return next;
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkLoaded, isSignedIn, view, account?.clerkUserId]);
+
   const requireAuth = (nextView) => {
     if (isSignedIn) {
       setView(nextView);
@@ -68,6 +113,37 @@ function App() {
     }
     setPostAuthView(nextView);
     setView('sign-in');
+  };
+
+  const startDmByEmail = async (emailAddress) => {
+    const resp = await fetch('/api/contacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkUserId: account?.clerkUserId,
+        displayName: account?.displayName,
+        email: account?.email,
+        contactEmail: emailAddress,
+      }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to add contact');
+    }
+
+    const dmRoom = data.dmRoom;
+    const label = data.contact?.displayName || emailAddress;
+
+    setChatRooms((prev) => (prev.includes(dmRoom) ? prev : [...prev, dmRoom]));
+    setRoomLabels((prev) => ({ ...prev, [dmRoom]: label }));
+    setRoomMembers((prev) => ({ ...prev, [dmRoom]: [label] }));
+    setDirectMessages((prev) => {
+      if (prev.some((x) => x.roomId === dmRoom)) return prev;
+      return [{ roomId: dmRoom, label }, ...prev];
+    });
+
+    setActiveChatRoom(dmRoom);
+    setView('chat');
   };
   const isBrightPreset = activePreset.tone === 'bright';
   const themeVars = {
@@ -153,7 +229,12 @@ function App() {
             {view === 'dashboard' && <Dashboard />}
             {view === 'chat-hub' && (
               <ChatHub
-                onJoinExisting={() => setView('chat')}
+                onJoinExisting={(roomId) => {
+                  if (typeof roomId === 'string' && roomId) {
+                    setActiveChatRoom(roomId);
+                  }
+                  setView('chat');
+                }}
                 onCreateRoom={(name, members) => {
                   const slug = name
                     .trim()
@@ -167,6 +248,8 @@ function App() {
                   setView('chat');
                 }}
                 contacts={Object.values(roomMembers).flat().filter((value, index, arr) => arr.indexOf(value) === index)}
+                onStartDm={startDmByEmail}
+                directMessages={directMessages}
               />
             )}
             {view === 'chat' && (
@@ -174,6 +257,7 @@ function App() {
                 onGoHome={() => setView('landing')}
                 account={account}
                 rooms={chatRooms}
+                roomLabels={roomLabels}
                 roomMembers={roomMembers}
                 initialRoom={activeChatRoom}
               />

@@ -6,7 +6,7 @@ import { createPusherClient } from '../lib/pusher';
 const defaultRooms = ['general', 'backend', 'frontend', 'devops'];
 const defaultMembers = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
 
-export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, roomMembers, initialRoom }) {
+export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, roomLabels = {}, roomMembers, initialRoom }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
   const inputRef = useRef(null);
@@ -23,6 +23,8 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
   const [username, setUsername] = useState('');
   const [activeRoom, setActiveRoom] = useState(initialRoom || rooms[0] || 'general');
   const members = roomMembers?.[activeRoom] || defaultMembers;
+  const channelRooms = rooms.filter((value) => !String(value).startsWith('dm:'));
+  const dmRooms = rooms.filter((value) => String(value).startsWith('dm:'));
 
   const appendMessage = (nextMessage) => {
     setMessages((prev) => {
@@ -292,7 +294,7 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
       <aside className="panel">
         <div className="panel-title">Channels</div>
         <ul className="channel-list">
-          {rooms.map((room) => (
+          {channelRooms.map((room) => (
             <li
               key={room}
               className={`channel-item ${activeRoom === room ? 'active' : ''}`}
@@ -303,11 +305,31 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
             </li>
           ))}
         </ul>
+
+        {dmRooms.length > 0 && (
+          <>
+            <div className="panel-title">Direct Messages</div>
+            <ul className="channel-list">
+              {dmRooms.map((room) => (
+                <li
+                  key={room}
+                  className={`channel-item ${activeRoom === room ? 'active' : ''}`}
+                  onClick={() => setActiveRoom(room)}
+                >
+                  <span className="hash">@</span>
+                  {roomLabels?.[room] || room.slice(3, 9)}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </aside>
 
       <div className="panel chat-main">
         <div className="chat-header">
-          <strong># {activeRoom}</strong>
+          <strong>
+            {activeRoom.startsWith('dm:') ? `@ ${roomLabels?.[activeRoom] || activeRoom.slice(3, 9)}` : `# ${activeRoom}`}
+          </strong>
           <span>Messages</span>
           <button
             type="button"

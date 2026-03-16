@@ -2,11 +2,20 @@ import { useMemo, useState } from 'react';
 
 const defaultContacts = ['Ayush', 'Ashwin', 'Ghosh (AI)', 'Amritanshu', 'Aditya', 'Santanu'];
 
-export default function ChatHub({ onJoinExisting, onCreateRoom, contacts = defaultContacts }) {
+export default function ChatHub({
+  onJoinExisting,
+  onCreateRoom,
+  onStartDm,
+  directMessages = [],
+  contacts = defaultContacts,
+}) {
   const [mode, setMode] = useState('select');
   const [roomName, setRoomName] = useState('');
   const [selectedContacts, setSelectedContacts] = useState(() => new Set());
   const [error, setError] = useState('');
+  const [dmEmail, setDmEmail] = useState('');
+  const [dmError, setDmError] = useState('');
+  const [dmBusy, setDmBusy] = useState(false);
 
   const sortedContacts = useMemo(() => [...contacts].sort(), [contacts]);
 
@@ -36,12 +45,64 @@ export default function ChatHub({ onJoinExisting, onCreateRoom, contacts = defau
     onCreateRoom(trimmed, Array.from(selectedContacts));
   };
 
+  const handleStartDm = async () => {
+    const email = dmEmail.trim().toLowerCase();
+    if (!email) {
+      setDmError('Enter an email address.');
+      return;
+    }
+    setDmBusy(true);
+    setDmError('');
+    try {
+      await onStartDm?.(email);
+      setDmEmail('');
+    } catch (err) {
+      setDmError(err?.message || 'Failed to start chat.');
+    } finally {
+      setDmBusy(false);
+    }
+  };
+
   return (
     <section className={`chat-hub ${mode === 'create' ? 'chat-hub-create' : ''}`}>
       <header className="chat-hub-header">
         <h1>Chatrooms</h1>
         <p className="muted">Pick an existing room or spin up a new one.</p>
       </header>
+
+      <div className="chat-hub-dm">
+        <h2>Direct Messages</h2>
+        <p className="muted">Add a contact by email and start a 1:1 chat if they already exist.</p>
+
+        <div className="chat-hub-dm-row">
+          <input
+            type="email"
+            placeholder="contact@example.com"
+            value={dmEmail}
+            onChange={(e) => setDmEmail(e.target.value)}
+            disabled={dmBusy}
+          />
+          <button type="button" className="neo-btn neo-btn-green" onClick={handleStartDm} disabled={dmBusy}>
+            {dmBusy ? 'Starting...' : 'Start Chat'}
+          </button>
+        </div>
+        {dmError && <div className="chat-hub-error">{dmError}</div>}
+
+        {directMessages.length > 0 && (
+          <div className="chat-hub-dm-list">
+            {directMessages.map((dm) => (
+              <button
+                key={dm.roomId}
+                type="button"
+                className="chat-hub-dm-item"
+                onClick={() => onJoinExisting?.(dm.roomId)}
+              >
+                @{dm.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {mode === 'select' && (
         <div className="chat-hub-actions">

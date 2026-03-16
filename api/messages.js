@@ -96,7 +96,11 @@ const handler = async (req, res) => {
     await connectToMongo();
     const { Conversation, Message } = getModels();
 
-    const conversation = await Conversation.findOne({ type: 'room', slug: room }).select('_id');
+    const isDm = room.startsWith('dm:');
+    const conversationId = isDm ? room.slice(3) : null;
+    const conversation = isDm
+      ? await Conversation.findOne({ _id: conversationId, type: 'dm' }).select('_id')
+      : await Conversation.findOne({ type: 'room', slug: room }).select('_id');
     if (!conversation) return res.json({ ok: true, room, messages: [] });
 
     const docs = await Message.find({ conversationId: conversation._id, deletedAt: { $exists: false } })

@@ -147,15 +147,25 @@ const handler = async (req, res) => {
           { upsert: true, new: true },
         );
 
-        const conversation = await Conversation.findOneAndUpdate(
-          { type: 'room', slug: room },
-          {
-            $setOnInsert: { type: 'room', slug: room, name: room },
-            $set: { lastMessageAt: new Date(time) },
-            $addToSet: { memberIds: sender._id },
-          },
-          { upsert: true, new: true },
-        );
+        const isDm = room.startsWith('dm:');
+        const dmConversationId = isDm ? room.slice(3) : null;
+        const conversation = isDm
+          ? await Conversation.findOneAndUpdate(
+              { _id: dmConversationId, type: 'dm' },
+              { $set: { lastMessageAt: new Date(time) }, $addToSet: { memberIds: sender._id } },
+              { new: true },
+            )
+          : await Conversation.findOneAndUpdate(
+              { type: 'room', slug: room },
+              {
+                $setOnInsert: { type: 'room', slug: room, name: room },
+                $set: { lastMessageAt: new Date(time) },
+                $addToSet: { memberIds: sender._id },
+              },
+              { upsert: true, new: true },
+            );
+
+        if (!conversation) throw new Error('Conversation not found');
 
         const doc = await Message.create({
           conversationId: conversation._id,
