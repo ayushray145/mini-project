@@ -240,7 +240,20 @@ export default function ChatRoom({ onGoHome, account, rooms = defaultRooms, room
         clientId: clientIdRef.current,
         clerkUserId: account?.clerkUserId,
       }),
-    });
+    })
+      .then(async (resp) => {
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok || !data?.ok) {
+          console.warn('Message send failed', { status: resp.status, data });
+          return;
+        }
+        if (data.dbStored === false) {
+          console.warn('Message was sent but NOT stored in MongoDB', data.dbError);
+        }
+      })
+      .catch((error) => {
+        console.warn('Message send failed', error);
+      });
   };
 
   const isCodeMessage = (text) => /^```[\w-]*\n[\s\S]*\n```$/.test(text.trim());

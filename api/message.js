@@ -128,48 +128,52 @@ const handler = async (req, res) => {
 
     let dbMessageId;
     if (MONGODB_URI) {
-      await connectToMongo();
-      const { User, Conversation, Message } = getModels();
+      try {
+        await connectToMongo();
+        const { User, Conversation, Message } = getModels();
 
-      const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { displayName: username };
-      const sender = await User.findOneAndUpdate(
-        userQuery,
-        {
-          $set: {
-            displayName: username,
-            ...(clerkUserId ? { clerkUserId } : {}),
-            ...(clientId ? { clientId } : {}),
+        const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { displayName: username };
+        const sender = await User.findOneAndUpdate(
+          userQuery,
+          {
+            $set: {
+              displayName: username,
+              ...(clerkUserId ? { clerkUserId } : {}),
+              ...(clientId ? { clientId } : {}),
+            },
+            $setOnInsert: { statusMessage: '' },
           },
-          $setOnInsert: { statusMessage: '' },
-        },
-        { upsert: true, new: true },
-      );
+          { upsert: true, new: true },
+        );
 
-      const conversation = await Conversation.findOneAndUpdate(
-        { type: 'room', slug: room },
-        {
-          $setOnInsert: { type: 'room', slug: room, name: room },
-          $set: { lastMessageAt: new Date(time) },
-          $addToSet: { memberIds: sender._id },
-        },
-        { upsert: true, new: true },
-      );
+        const conversation = await Conversation.findOneAndUpdate(
+          { type: 'room', slug: room },
+          {
+            $setOnInsert: { type: 'room', slug: room, name: room },
+            $set: { lastMessageAt: new Date(time) },
+            $addToSet: { memberIds: sender._id },
+          },
+          { upsert: true, new: true },
+        );
 
-      const doc = await Message.create({
-        conversationId: conversation._id,
-        senderId: sender._id,
-        body: message,
-        kind: /^```[\w-]*\n[\s\S]*\n```$/.test(message.trim()) ? 'code' : 'text',
-        metadata: {
-          clientMessageId: id,
-          clientId,
-          room,
-          clientSentAt: time,
-          clerkUserId,
-        },
-      });
+        const doc = await Message.create({
+          conversationId: conversation._id,
+          senderId: sender._id,
+          body: message,
+          kind: /^```[\w-]*\n[\s\S]*\n```$/.test(message.trim()) ? 'code' : 'text',
+          metadata: {
+            clientMessageId: id,
+            clientId,
+            room,
+            clientSentAt: time,
+            clerkUserId,
+          },
+        });
 
-      dbMessageId = String(doc._id);
+        dbMessageId = String(doc._id);
+      } catch (error) {
+        console.warn('MongoDB write failed (message not persisted):', error?.message || String(error));
+      }
     }
 
     await pusher.trigger('chat', 'message', {

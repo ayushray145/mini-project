@@ -2,7 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import Pusher from 'pusher';
-import { connectToMongo } from './db/mongoose.js';
+import { connectToMongo, getMongoStatus } from './db/mongoose.js';
 import { Conversation, Message, User } from './models/index.js';
 
 dotenv.config();
@@ -45,6 +45,7 @@ app.get('/api/health', (req, res) => {
     ok: true,
     time: new Date().toISOString(),
     pusherConfigured,
+    mongo: getMongoStatus(),
   });
 });
 
@@ -108,50 +109,58 @@ app.post('/api/message', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Missing message' });
     }
 
-    // Persist to MongoDB (best-effort: if MONGODB_URI isn't set, we skip).
+    // Persist to MongoDB (best-effort: failure should not break realtime chat).
     let dbMessageId;
+    let dbStored = false;
+    let dbError;
     if (process.env.MONGODB_URI) {
-      await connectToMongo();
+      try {
+        await connectToMongo();
 
-      const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { displayName: username };
-      const sender = await User.findOneAndUpdate(
-        userQuery,
-        {
-          $set: {
-            displayName: username,
-            ...(clerkUserId ? { clerkUserId } : {}),
-            ...(clientId ? { clientId } : {}),
+        const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { displayName: username };
+        const sender = await User.findOneAndUpdate(
+          userQuery,
+          {
+            $set: {
+              displayName: username,
+              ...(clerkUserId ? { clerkUserId } : {}),
+              ...(clientId ? { clientId } : {}),
+            },
+            $setOnInsert: { statusMessage: '' },
           },
-          $setOnInsert: { statusMessage: '' },
-        },
-        { upsert: true, new: true },
-      );
+          { upsert: true, new: true },
+        );
 
-      const conversation = await Conversation.findOneAndUpdate(
-        { type: 'room', slug: room },
-        {
-          $setOnInsert: { type: 'room', slug: room, name: room },
-          $set: { lastMessageAt: new Date(time) },
-          $addToSet: { memberIds: sender._id },
-        },
-        { upsert: true, new: true },
-      );
+        const conversation = await Conversation.findOneAndUpdate(
+          { type: 'room', slug: room },
+          {
+            $setOnInsert: { type: 'room', slug: room, name: room },
+            $set: { lastMessageAt: new Date(time) },
+            $addToSet: { memberIds: sender._id },
+          },
+          { upsert: true, new: true },
+        );
 
-      const doc = await Message.create({
-        conversationId: conversation._id,
-        senderId: sender._id,
-        body: message,
-        kind: /^```[\w-]*\n[\s\S]*\n```$/.test(message.trim()) ? 'code' : 'text',
-        metadata: {
-          clientMessageId: id,
-          clientId,
-          room,
-          clientSentAt: time,
-          clerkUserId,
-        },
-      });
+        const doc = await Message.create({
+          conversationId: conversation._id,
+          senderId: sender._id,
+          body: message,
+          kind: /^```[\w-]*\n[\s\S]*\n```$/.test(message.trim()) ? 'code' : 'text',
+          metadata: {
+            clientMessageId: id,
+            clientId,
+            room,
+            clientSentAt: time,
+            clerkUserId,
+          },
+        });
 
-      dbMessageId = String(doc._id);
+        dbMessageId = String(doc._id);
+        dbStored = true;
+      } catch (error) {
+        dbError = error?.message || String(error);
+        console.warn('MongoDB write failed (message not persisted):', dbError);
+      }
     }
 
     await pusher.trigger('chat', 'message', {
@@ -164,7 +173,7 @@ app.post('/api/message', async (req, res) => {
       dbMessageId,
     });
 
-    return res.status(200).json({ ok: true, dbMessageId });
+    return res.status(200).json({ ok: true, dbMessageId, dbStored, dbError });
   } catch (error) {
     console.error('Pusher trigger failed', error);
     return res.status(500).json({ ok: false, error: 'Pusher trigger failed' });
