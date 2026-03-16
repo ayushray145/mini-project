@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import Pusher from 'pusher';
+import { connectToMongo } from './db/mongoose.js';
 
 dotenv.config();
 
@@ -82,6 +83,13 @@ app.post('/api/message', async (req, res) => {
 app.listen(PORT, () => {
   if (!pusherConfigured) {
     console.warn('Pusher env vars missing. Check backend/.env.example for required values.');
+  }
+  if (!process.env.MONGODB_URI) {
+    console.warn('MongoDB not configured. Set MONGODB_URI to enable persistence.');
+  } else {
+    connectToMongo()
+      .then(() => console.log('MongoDB connected'))
+      .catch((err) => console.error('MongoDB connection failed', err));
   }
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
