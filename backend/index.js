@@ -15,6 +15,9 @@ const {
   PUSHER_SECRET,
   PUSHER_CLUSTER,
   ALLOWED_ORIGIN,
+  GEMINI_API_KEY,
+  GEMINI_MODEL = '',
+  MIA_CONTEXT_MESSAGES = '4',
 } = process.env;
 
 const app = express();
@@ -41,12 +44,154 @@ const pusher = pusherConfigured
     })
   : null;
 
+const miaMentionPattern = /(^|\s)@mia\b/i;
+const miaContextLimit = Math.max(0, Math.min(Number(MIA_CONTEXT_MESSAGES) || 0, 8));
+const roomContextBuffer = new Map();
+
+const shouldTriggerMia = ({ message, username }) => {
+  if (!message) return false;
+  if (String(username || '').toLowerCase().includes('mia')) return false;
+  return miaMentionPattern.test(message);
+};
+
+const pushRoomContext = (room, entry) => {
+  const key = String(room || 'general');
+  const list = roomContextBuffer.get(key) || [];
+  list.push(entry);
+  const max = 20;
+  if (list.length > max) list.splice(0, list.length - max);
+  roomContextBuffer.set(key, list);
+};
+
+const getRoomContext = (room) => {
+  const key = String(room || 'general');
+  return roomContextBuffer.get(key) || [];
+};
+
+const buildMiaPrompt = ({ room, raw, context = [] }) => {
+  const cleaned = String(raw || '').replace(miaMentionPattern, '$1').trim();
+  const contextLines = (Array.isArray(context) ? context : [])
+    .filter((m) => m && m.message && m.username && !String(m.username).toLowerCase().includes('mia'))
+    .slice(-miaContextLimit)
+    .map((m) => `${m.username}: ${String(m.message).slice(0, 240)}`);
+  return [
+    'You are Mia (AI), a helpful developer assistant in a team chatroom called DevRooms.',
+    'Reply concisely and practically. Use Markdown. Use bullet lists when helpful.',
+    'When you include code, use fenced code blocks with a language tag (```js, ```ts, ```bash, etc.).',
+    room ? `Room: ${room}` : null,
+    contextLines.length ? `Recent chat context:\n${contextLines.join('\n')}` : null,
+    `User message: ${cleaned || raw}`,
+  ].filter(Boolean).join('\n');
+};
+
+const makeBotMessageId = (prefix = 'mia') =>
+  `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
+
+let resolvedGeminiTarget = null;
+
+async function generateMiaReply({ prompt, timeoutMs = 12000 }) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  const fetchJson = async (url, options) => {
+    const resp = await fetch(url, options);
+    const data = await resp.json().catch(() => null);
+    return { resp, data };
+  };
+
+  const normalizeRequestedModel = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.startsWith('models/') ? raw : `models/${raw}`;
+  };
+
+  const resolveGeminiTarget = async ({ timeoutMs: listTimeoutMs = 12000 } = {}) => {
+    const requested = normalizeRequestedModel(GEMINI_MODEL);
+    if (requested) return { apiVersion: 'v1beta', modelName: requested };
+    if (resolvedGeminiTarget) return resolvedGeminiTarget;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), listTimeoutMs);
+    try {
+      const listUrls = [
+        { apiVersion: 'v1beta', url: `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(GEMINI_API_KEY)}` },
+        { apiVersion: 'v1', url: `https://generativelanguage.googleapis.com/v1/models?key=${encodeURIComponent(GEMINI_API_KEY)}` },
+      ];
+
+      let lastError = null;
+      for (const candidate of listUrls) {
+        const { resp, data } = await fetchJson(candidate.url, { method: 'GET', signal: controller.signal });
+        if (!resp.ok) {
+          lastError = data?.error?.message || `ListModels failed (${resp.status})`;
+          continue;
+        }
+
+        const models = Array.isArray(data?.models) ? data.models : [];
+        const supported = models.filter((m) =>
+          Array.isArray(m?.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent') &&
+          typeof m?.name === 'string',
+        );
+
+        const preferred =
+          supported.find((m) => m.name.includes('flash')) ||
+          supported.find((m) => m.name.includes('gemini')) ||
+          supported[0];
+
+        if (!preferred?.name) break;
+        resolvedGeminiTarget = { apiVersion: candidate.apiVersion, modelName: preferred.name };
+        return resolvedGeminiTarget;
+      }
+
+      throw new Error(lastError || 'No generateContent-capable model found');
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const target = await resolveGeminiTarget({ timeoutMs });
+    const url = `https://generativelanguage.googleapis.com/${target.apiVersion}/${target.modelName}:generateContent?key=${encodeURIComponent(
+      GEMINI_API_KEY,
+    )}`;
+
+    const { resp, data } = await fetchJson(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 300 },
+      }),
+    });
+    if (!resp.ok) {
+      const detail = data?.error?.message || `Gemini request failed (${resp.status})`;
+      throw new Error(detail);
+    }
+
+    const text =
+      data?.candidates?.[0]?.content?.parts?.map((p) => p?.text).filter(Boolean).join('') ||
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      '';
+    return String(text || '').trim();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     time: new Date().toISOString(),
     pusherConfigured,
     mongo: getMongoStatus(),
+    geminiConfigured: Boolean(GEMINI_API_KEY),
+    geminiModelRequested: GEMINI_MODEL || null,
+    geminiModelResolved: resolvedGeminiTarget?.modelName || null,
+    miaContextMessages: miaContextLimit,
   });
 });
 
@@ -318,6 +463,9 @@ app.post('/api/message', async (req, res) => {
       }
     }
 
+    const miaContext = getRoomContext(room);
+    pushRoomContext(room, { username, message, time, room, isBot: false });
+
     await pusher.trigger('chat', 'message', {
       id,
       room,
@@ -327,6 +475,43 @@ app.post('/api/message', async (req, res) => {
       clientId,
       dbMessageId,
     });
+
+    if (shouldTriggerMia({ message, username })) {
+      (async () => {
+        try {
+          const prompt = buildMiaPrompt({ room, raw: message, context: miaContext });
+          const reply = await generateMiaReply({ prompt });
+          if (!reply) return;
+          const miaMessage = {
+            id: makeBotMessageId('mia'),
+            room,
+            message: reply,
+            username: 'Mia (AI)',
+            time: new Date().toISOString(),
+            clientId: 'mia-gemini',
+            isBot: true,
+            senderId: 'mia-gemini',
+          };
+          pushRoomContext(room, miaMessage);
+          await pusher.trigger('chat', 'message', miaMessage);
+        } catch (error) {
+          const msg = error?.message || String(error);
+          console.warn('Mia (Gemini) reply failed:', msg);
+          const miaErrorMessage = {
+            id: makeBotMessageId('mia-error'),
+            room,
+            message: `Mia is offline right now (${msg}).`,
+            username: 'Mia (AI)',
+            time: new Date().toISOString(),
+            clientId: 'mia-gemini',
+            isBot: true,
+            senderId: 'mia-gemini',
+          };
+          pushRoomContext(room, miaErrorMessage);
+          await pusher.trigger('chat', 'message', miaErrorMessage);
+        }
+      })();
+    }
 
     return res.status(200).json({ ok: true, dbMessageId, dbStored, dbError });
   } catch (error) {
