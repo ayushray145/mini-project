@@ -5,7 +5,7 @@
 <img width="1847" height="938" alt="Image" src="https://github.com/user-attachments/assets/bb6849b4-07aa-43cd-82e8-3297726ebeac" />
 
 ## Backend
-For local dev, the backend lives in `backend/` and exposes:
+For local dev, the backend lives in `backend/` and exposes:-
 - `GET /api/health` for basic status.
 - `GET /api/messages?room=general` to fetch recent message history (requires MongoDB).
 - `POST /api/message` to broadcast chat messages via Pusher.
