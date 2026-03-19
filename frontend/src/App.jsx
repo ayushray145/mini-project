@@ -171,6 +171,14 @@ function App() {
       <Landing
         onEnterDashboard={() => requireAuth('dashboard')}
         onEnterChat={() => requireAuth('chat-hub')}
+        onLogin={() => {
+          setPostAuthView('dashboard');
+          setView('sign-in');
+        }}
+        onSignup={() => {
+          setPostAuthView('dashboard');
+          setView('sign-up');
+        }}
         themeVars={themeVars}
       />
     );

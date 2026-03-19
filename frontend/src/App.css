@@ -300,6 +300,7 @@
 .neo-pills span:hover {
   transform: translateY(-2px);
   background: #fff;
+  color: #000;
 }
 
 .neo-actions {
@@ -2359,18 +2360,15 @@
 }
 
 .neo-landing::before {
-  background-image:
-    linear-gradient(transparent 95%, rgba(148, 163, 184, 0.1) 95%),
-    linear-gradient(90deg, transparent 95%, rgba(148, 163, 184, 0.1) 95%);
-  background-size: 36px 36px;
-  opacity: 0.4;
+  background: #050505;
+  opacity: 1;
 }
 
 .neo-landing::after {
   background:
-    radial-gradient(circle at 22% 18%, rgba(56, 189, 248, 0.12), transparent 38%),
-    radial-gradient(circle at 86% 22%, rgba(129, 140, 248, 0.12), transparent 40%),
-    radial-gradient(circle at 70% 76%, rgba(34, 197, 94, 0.12), transparent 40%);
+    radial-gradient(circle at 22% 18%, rgba(56, 189, 248, 0.035), transparent 42%),
+    radial-gradient(circle at 86% 22%, rgba(129, 140, 248, 0.03), transparent 44%),
+    radial-gradient(circle at 70% 76%, rgba(34, 197, 94, 0.028), transparent 44%);
 }
 
 .neo-shape {
@@ -2975,5 +2973,328 @@
 @media (max-width: 640px) {
   .neo-chat-input-wrap {
     border-radius: var(--saas-radius-lg);
+  }
+}
+
+/* Landing redesign inspired by dark SaaS hero */
+.neo-landing {
+  background: #03060d;
+  padding: 36px 42px 76px;
+}
+
+.neo-landing::before {
+  background: #04070f;
+}
+
+.neo-landing::after {
+  background:
+    radial-gradient(circle at 18% 46%, rgba(37, 99, 235, 0.13), transparent 40%),
+    radial-gradient(circle at 72% 62%, rgba(30, 64, 175, 0.11), transparent 44%);
+}
+
+.neo-nav {
+  max-width: 1120px;
+  margin: 0 auto 52px !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  background: rgba(2, 6, 23, 0.7) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 36px rgba(2, 6, 23, 0.42) !important;
+  border-radius: 14px;
+  padding: 14px 18px !important;
+}
+
+.neo-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.neo-logo-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #e0f2fe;
+  font-size: 0.9rem;
+}
+
+.neo-nav-links a {
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.neo-nav-links a:hover {
+  color: #f8fafc;
+}
+
+.neo-nav-actions .neo-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+
+.neo-nav-actions .neo-btn-yellow {
+  background: transparent !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #e2e8f0;
+}
+
+.neo-nav-actions .neo-btn-dark {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  border-color: #2563eb !important;
+  color: #f8fafc;
+}
+
+.neo-hero {
+  max-width: 1120px;
+  margin: 0 auto;
+  grid-template-columns: minmax(320px, 1.05fr) minmax(360px, 1fr);
+  align-items: end;
+  justify-items: start;
+  gap: 70px;
+  min-height: calc(100vh - 240px);
+}
+
+.neo-copy {
+  text-align: left;
+  max-width: 640px;
+  margin: 0;
+  align-self: end;
+}
+
+.neo-kicker {
+  margin: 0 0 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  background: rgba(30, 64, 175, 0.24);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.neo-copy h1 {
+  margin: 0;
+  font-size: clamp(2.7rem, 5.9vw, 4.45rem);
+  line-height: 1.02;
+  color: #f8fafc;
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  letter-spacing: -0.01em;
+}
+
+.neo-title-top {
+  font-size: 0.84em;
+}
+
+.neo-title-bottom {
+  font-size: 1.14em;
+}
+
+.neo-subhead {
+  margin: 28px 0 20px;
+  color: #60a5fa;
+  font-size: clamp(1.65rem, 3.1vw, 2.55rem);
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  letter-spacing: -0.005em;
+}
+
+.neo-copy p {
+  margin: 0;
+  color: #94a3b8;
+  max-width: 56ch;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.neo-pills {
+  margin-top: 22px;
+  justify-content: flex-start;
+}
+
+.neo-pills span {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.neo-pills span:hover {
+  background: #f8fafc;
+  color: #000;
+}
+
+.neo-actions {
+  justify-content: flex-start;
+  margin-top: 30px;
+}
+
+.neo-actions .neo-btn {
+  border-radius: 12px;
+  border-width: 1px !important;
+  box-shadow: none !important;
+  padding: 13px 22px;
+}
+
+.neo-actions .neo-btn-yellow {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #eff6ff !important;
+  border-color: #2563eb !important;
+}
+
+.neo-actions .neo-btn-purple {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #e2e8f0 !important;
+}
+
+.neo-hero-visual {
+  position: relative;
+  z-index: 1;
+}
+
+.neo-collab-card {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(8, 13, 26, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55);
+  overflow: hidden;
+  padding: 16px;
+}
+
+.neo-collab-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.neo-collab-top strong {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.neo-collab-top span {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.neo-collab-screens {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 14px;
+}
+
+.neo-dev-screen {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 12px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.neo-dev-screen header {
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.neo-dev-screen code {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(71, 85, 105, 0.45);
+  border-radius: 8px;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
+.neo-review-status {
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.neo-review-status-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.neo-review-status-top strong {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.neo-review-status-top span {
+  color: #60a5fa;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.neo-review-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.9);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.neo-review-bar span {
+  display: block;
+  width: 96%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.neo-review-status p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .neo-hero {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    min-height: auto;
+  }
+
+  .neo-copy {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .neo-pills,
+  .neo-actions {
+    justify-content: flex-start;
+  }
+
+  .neo-collab-screens {
+    grid-template-columns: 1fr;
   }
 }

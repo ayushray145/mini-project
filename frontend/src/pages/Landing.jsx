@@ -1,17 +1,20 @@
 export default function Landing({
   onEnterDashboard,
   onEnterChat,
+  onLogin,
+  onSignup,
   themeVars,
 }) {
   return (
-    <section className="neo-landing" style={themeVars}>
+    <section className="neo-landing" style={{ ...themeVars, '--neo-bg': '#000000' }}>
       <header className="neo-nav">
         <button
           type="button"
           className="neo-logo"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          DEVROOMS
+          <span className="neo-logo-mark" aria-hidden="true">#</span>
+          <span>DevRooms</span>
         </button>
         <nav className="neo-nav-links">
           <a href="#features">Features</a>
@@ -20,38 +23,54 @@ export default function Landing({
           <a href="#contact">Contact</a>
         </nav>
         <div className="neo-nav-actions">
-          <button className="neo-btn neo-btn-yellow" onClick={onEnterChat}>Try Chat</button>
-          <button className="neo-btn neo-btn-dark" onClick={onEnterDashboard}>Open App</button>
+          <button className="neo-btn neo-btn-yellow" onClick={onLogin}>Login</button>
+          <button className="neo-btn neo-btn-dark" onClick={onSignup}>Signup</button>
         </div>
       </header>
 
       <div className="neo-hero">
-        <div className="neo-shape neo-shape-circle neo-mascot" aria-hidden="true">
-          <span className="neo-eye neo-eye-left" />
-          <span className="neo-eye neo-eye-right" />
-          <span className="neo-smile" />
-        </div>
-        <div className="neo-shape neo-shape-square" />
-        <div className="neo-shape neo-shape-zig" />
-
         <div className="neo-copy">
-          <h1>Developer Chatroom</h1>
+          <h1>
+            <span className="neo-title-top">&lt;Developer&gt;</span>
+            <br />
+            <span className="neo-title-bottom">Chatroom</span>
+          </h1>
           <p className="neo-subhead">Ship decisions as fast as code.</p>
-          <p>
-            DevRooms is a developer-first chatroom where each room maps to a workstream and every
-            message carries context, owners, and next steps. Less noise, more shipping.
-          </p>
-          <div className="neo-pills">
-            <span># Rooms = workstreams</span>
-            <span># Decisions stay visible</span>
-            <span># Context never leaves</span>
-          </div>
           <div className="neo-actions">
             <button className="neo-btn neo-btn-yellow" onClick={onEnterDashboard}>Enter Dashboard</button>
             <button className="neo-btn neo-btn-purple" onClick={onEnterChat}>Join Chat Room</button>
           </div>
         </div>
-
+        <aside className="neo-hero-visual" aria-label="Platform preview">
+          <div className="neo-collab-card">
+            <div className="neo-collab-top">
+              <strong>Live Code Review Room</strong>
+              <span>4 developers online</span>
+            </div>
+            <div className="neo-collab-screens">
+              <article className="neo-dev-screen">
+                <header>Ava · frontend</header>
+                <code>{`const message = formatSnippet(input);`}</code>
+                <code>{`sendToRoom("frontend", message);`}</code>
+              </article>
+              <article className="neo-dev-screen">
+                <header>Noah · backend</header>
+                <code>{`router.post("/review", validatePR);`}</code>
+                <code>{`return res.json({ ok: true });`}</code>
+              </article>
+            </div>
+            <div className="neo-review-status">
+              <div className="neo-review-status-top">
+                <strong>Code reviewed: Correct</strong>
+                <span>96% confidence</span>
+              </div>
+              <div className="neo-review-bar">
+                <span />
+              </div>
+              <p>AI + peer review checks passed with secure and production-ready suggestions.</p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       <section id="features" className="neo-features">
