@@ -547,13 +547,13 @@
 }
 
 .neo-metrics strong {
-  font-size: 1.7rem;
+  font-size: 1.95rem;
   line-height: 1;
 }
 
 .neo-metrics span {
   color: #e9d8ff;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .neo-cta-band {
@@ -3297,4 +3297,16 @@
   .neo-collab-screens {
     grid-template-columns: 1fr;
   }
+}
+
+/* Metrics styling: remove outer box, use white text */
+.neo-metrics > div {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.neo-metrics strong,
+.neo-metrics span {
+  color: #ffffff !important;
 }
