@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Show, SignIn, SignUp, UserButton, useUser } from '@clerk/react';
-import Dashboard from './pages/Dashboard';
+import CommunityHome from './pages/CommunityHome';
 import ChatRoom from './pages/ChatRoom';
 import Landing from './pages/Landing';
 import Settings from './pages/Settings';
 import ChatHub from './pages/ChatHub';
+import CommunityModal from './component/ui/CommunityModal';
 import './App.css';
 
 const globalTheme = {
@@ -40,6 +41,8 @@ function App() {
   const [activeChatRoom, setActiveChatRoom] = useState('general');
   const [roomLabels, setRoomLabels] = useState({});
   const [directMessages, setDirectMessages] = useState([]);
+  const [communityModalOpen, setCommunityModalOpen] = useState(false);
+  const [communityModalMode, setCommunityModalMode] = useState('create');
   const [roomMembers, setRoomMembers] = useState({
     general: ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'],
     backend: ['Noah', 'Liam', 'Ethan'],
@@ -132,6 +135,50 @@ function App() {
     setView('sign-in');
   };
 
+  const communityRooms = chatRooms
+    .filter((roomId) => !String(roomId).startsWith('dm:'))
+    .map((roomId) => ({
+      id: roomId,
+      label: roomLabels[roomId] || roomId,
+      members: roomMembers[roomId]?.length || 0,
+    }));
+
+  const openCommunityModal = (mode = 'create') => {
+    setCommunityModalMode(mode);
+    setCommunityModalOpen(true);
+  };
+
+  const closeCommunityModal = () => {
+    setCommunityModalOpen(false);
+  };
+
+  const openCommunityRoom = (roomId) => {
+    if (!roomId) return;
+    setActiveChatRoom(roomId);
+    setView('chat');
+    setCommunityModalOpen(false);
+  };
+
+  const createCommunity = ({ name, members = [] }) => {
+    const slug = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-');
+    const roomId = slug || `community-${Date.now()}`;
+    const nextMembers = Array.from(
+      new Set([
+        ...(Array.isArray(members) ? members : []),
+        account?.displayName?.trim?.() || 'You',
+      ]),
+    );
+
+    setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
+    setRoomLabels((prev) => ({ ...prev, [roomId]: name.trim() || roomId }));
+    setRoomMembers((prev) => ({ ...prev, [roomId]: nextMembers.length ? nextMembers : ['You'] }));
+    openCommunityRoom(roomId);
+  };
+
   const startDmByEmail = async (emailAddress) => {
     const resp = await fetch('/api/contacts', {
       method: 'POST',
@@ -222,7 +269,7 @@ function App() {
           </a>
           <div className="topbar-actions">
             <button className={view === 'dashboard' ? 'active' : ''} onClick={() => requireAuth('dashboard')}>
-              Dashboard
+              Communities
             </button>
             <button className={view === 'chat' || view === 'chat-hub' ? 'active' : ''} onClick={() => requireAuth('chat-hub')}>
               Chat Room
@@ -241,7 +288,7 @@ function App() {
           </div>
         </header>
 
-        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''}`}>
+        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''} ${view === 'dashboard' ? 'discord-workspace-dashboard' : ''}`}>
           <Show when="signed-out">
             <div className="auth-screen">
               {view === 'sign-up' ? <SignUp /> : <SignIn />}
@@ -256,7 +303,11 @@ function App() {
           </Show>
 
           <Show when="signed-in">
-            {view === 'dashboard' && <Dashboard />}
+            {view === 'dashboard' && (
+              <CommunityHome
+                onOpenCommunityModal={openCommunityModal}
+              />
+            )}
             {view === 'chat-hub' && (
               <ChatHub
                 onJoinExisting={(roomId) => {
@@ -298,6 +349,25 @@ function App() {
                 onAccountChange={setAccount}
               />
             )}
+
+            <button
+              type="button"
+              className="community-fab"
+              aria-label="Create or join a community"
+              onClick={() => openCommunityModal('create')}
+            >
+              +
+            </button>
+
+            <CommunityModal
+              isOpen={communityModalOpen}
+              mode={communityModalMode}
+              onClose={closeCommunityModal}
+              onModeChange={setCommunityModalMode}
+              communities={communityRooms}
+              onCreateCommunity={createCommunity}
+              onJoinCommunity={openCommunityRoom}
+            />
           </Show>
         </main>
       </div>
