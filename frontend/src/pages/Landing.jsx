@@ -653,19 +653,72 @@ export default function Landing({
         </div>
       </section>
 
-      <section className="neo-cta-band">
-        <h2>Ready to run your team like a high-speed command center?</h2>
-        <div className="neo-actions">
-          <button className="neo-btn neo-btn-purple" onClick={onEnterDashboard}>
-            Launch Workspace
-          </button>
-          <button className="neo-btn neo-btn-yellow" onClick={onEnterChat}>
-            Explore Live Chat
-          </button>
-        </div>
-      </section>
-
       <footer id="contact" className="neo-footer">
+        <div className="neo-footer-grid">
+          <div className="neo-footer-intro">
+            <button
+              type="button"
+              className="neo-logo neo-footer-logo"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              <span className="neo-logo-mark" aria-hidden="true">
+                #
+              </span>
+              <span>DevRooms</span>
+            </button>
+            <p className="neo-footer-copy">
+              DevRooms helps engineering teams move from discussion to delivery
+              with real-time chat, shared context, and faster decisions.
+            </p>
+            <div className="neo-footer-socials">
+              <a href="#" aria-label="DevRooms on X">
+                X
+              </a>
+              <a href="#" aria-label="DevRooms on Discord">
+                Discord
+              </a>
+              <a href="#" aria-label="DevRooms on GitHub">
+                GitHub
+              </a>
+              <a href="#" aria-label="DevRooms on LinkedIn">
+                LinkedIn
+              </a>
+            </div>
+          </div>
+
+          <div className="neo-footer-nav">
+            <div className="neo-footer-column">
+              <h3>Product</h3>
+              <a href="#features">Features</a>
+              <a href="#metrics">Metrics</a>
+              <a href="#">Integrations</a>
+              <a href="#">Changelog</a>
+            </div>
+            <div className="neo-footer-column">
+              <h3>Resources</h3>
+              <a href="#">Documentation</a>
+              <a href="#">Tutorials</a>
+              <a href="#">Blog</a>
+              <a href="#">Support</a>
+            </div>
+            <div className="neo-footer-column">
+              <h3>Company</h3>
+              <a href="#">About</a>
+              <a href="#">Careers</a>
+              <a href="#contact">Contact</a>
+              <a href="#">Partners</a>
+            </div>
+          </div>
+        </div>
+
+        <div className="neo-footer-bottom">
+          <p>© 2026 DevRooms. Built for modern engineering teams.</p>
+          <div className="neo-footer-legal">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Cookies Settings</a>
+          </div>
+        </div>
         <div className="neo-footer-brand">DevRooms</div>
         <div className="neo-footer-links">
           <a href="#">Product</a>

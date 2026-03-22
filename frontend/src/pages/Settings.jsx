@@ -1,10 +1,4 @@
-export default function Settings({
-  presets,
-  activePreset,
-  onPresetChange,
-  account,
-  onAccountChange,
-}) {
+export default function Settings({ account, onAccountChange }) {
   const setAccountField = (key, value) => {
     const next = { ...account, [key]: value };
     onAccountChange(next);
@@ -14,28 +8,8 @@ export default function Settings({
   return (
     <section className="settings-layout">
       <article className="settings-card">
-        <h1>Appearance Settings</h1>
-        <p>Choose a single preset. Half are dark-based and half are bright-based.</p>
-
-        <div className="settings-grid">
-          <label className="neo-theme-select-wrap settings-select">
-            <span>Theme Preset</span>
-            <select
-              className="neo-theme-select"
-              value={activePreset.id}
-              onChange={(e) => {
-                const selected = presets.find((theme) => theme.id === e.target.value);
-                if (selected) onPresetChange(selected);
-              }}
-            >
-              {presets.map((theme) => (
-                <option key={theme.id} value={theme.id}>
-                  {theme.label} ({theme.tone})
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <h1>Workspace Settings</h1>
+        <p>DevRooms now uses one shared interface theme based on the landing page.</p>
 
         <div className="settings-section">
           <h2>User / Account (Frontend Only)</h2>

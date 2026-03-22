@@ -579,7 +579,7 @@
   background: var(--neo-secondary);
   color: #fff;
   box-shadow: 8px 8px 0 #000;
-  padding: 22px;
+  padding: 50px;
   margin-bottom: 16px;
   display: grid;
   gap: 12px;
@@ -3161,6 +3161,163 @@
   color: #e2e8f0 !important;
 }
 
+.neo-footer {
+  max-width: 1120px;
+  margin: 88px auto 0;
+  padding: 42px 0 12px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.neo-footer-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(420px, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.neo-footer-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.neo-footer-logo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  justify-content: flex-start;
+  width: fit-content;
+  box-shadow: none !important;
+  outline: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+.neo-footer-copy {
+  margin: 0;
+  max-width: 38ch;
+  color: #94a3b8;
+  font-size: 0.96rem;
+  line-height: 1.75;
+}
+
+.neo-footer-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.neo-footer-socials a {
+  color: #cbd5e1;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.neo-footer-socials a:hover,
+.neo-footer-column a:hover,
+.neo-footer-legal a:hover {
+  color: #f8fafc;
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.neo-footer-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 28px;
+}
+
+.neo-footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.neo-footer-column h3 {
+  margin: 0 0 6px;
+  color: #f8fafc;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.neo-footer-column a,
+.neo-footer-legal a {
+  color: #94a3b8;
+  font-size: 0.92rem;
+  width: fit-content;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+
+.neo-footer-bottom {
+  margin-top: 34px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.neo-footer-bottom p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.neo-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: flex-end;
+}
+
+.neo-footer > .neo-footer-brand,
+.neo-footer > .neo-footer-links,
+.neo-footer > p:not(.neo-footer-copy) {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .neo-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .neo-footer-nav {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .neo-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .neo-footer-legal {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .neo-footer {
+    margin-top: 64px;
+    padding-top: 32px;
+  }
+
+  .neo-footer-nav {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .neo-footer-copy {
+    max-width: none;
+  }
+}
+
 .neo-hero-visual {
   position: relative;
   z-index: 1;
@@ -3173,6 +3330,113 @@
   box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55);
   overflow: hidden;
   padding: 16px;
+}
+
+/* Global DevRooms theme alignment */
+body {
+  color: var(--neo-text-main, #f8fafc);
+  background:
+    radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.1), transparent 34%),
+    radial-gradient(circle at 84% 18%, rgba(30, 64, 175, 0.1), transparent 38%),
+    #03060d;
+}
+
+.discord-app {
+  color: var(--neo-text-main);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(59, 130, 246, 0.1), transparent 36%),
+    radial-gradient(circle at 88% 18%, rgba(37, 99, 235, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(3, 6, 13, 1));
+}
+
+.discord-shell {
+  background: transparent;
+}
+
+.discord-topbar {
+  background: rgba(9, 17, 31, 0.88);
+  backdrop-filter: blur(12px);
+}
+
+.topbar-actions button {
+  background: rgba(15, 23, 42, 0.82);
+  color: var(--neo-text-muted);
+}
+
+.topbar-actions button.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(37, 99, 235, 0.14));
+  color: var(--neo-text-main);
+}
+
+.panel,
+.settings-card,
+.stat-card,
+.activity-card,
+.chat-hub-dm,
+.chat-hub-chip,
+.chat-hub-dm-item,
+.chat-hub-field input,
+.chat-hub-dm-row input,
+.dashboard-download-btn,
+.settings-select,
+.neo-theme-select,
+.neo-ai-body input,
+.neo-ai-body textarea {
+  border-color: var(--saas-border) !important;
+}
+
+.panel,
+.settings-card,
+.stat-card,
+.activity-card,
+.chat-hub-dm {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(8, 13, 26, 0.96)) !important;
+}
+
+.dashboard-download-btn,
+.neo-ai-body button,
+.chat-hub-actions .neo-btn-light {
+  border: 1px solid var(--saas-border) !important;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #eff6ff !important;
+  box-shadow: none !important;
+}
+
+.chat-hub-actions .neo-btn-light:hover,
+.dashboard-download-btn:hover,
+.neo-ai-body button:hover {
+  box-shadow: var(--saas-shadow-soft) !important;
+}
+
+.chat-hub-dm,
+.chat-hub-chip,
+.chat-hub-dm-item,
+.settings-select,
+.neo-whiteboard-toolbar label,
+.settings-toggle-row {
+  background: rgba(15, 23, 42, 0.62) !important;
+}
+
+.chat-hub-chip.active,
+.chat-hub-dm-item:hover {
+  background: rgba(59, 130, 246, 0.18) !important;
+}
+
+.settings-card p,
+.settings-section h2,
+.chat-hub-header .muted,
+.chat-hub-dm p.muted,
+.dashboard-message p,
+.muted {
+  color: var(--neo-text-muted);
+}
+
+.settings-card h1,
+.settings-section h2,
+.chat-hub-header h1,
+.dashboard-channel-header h1,
+.panel-title {
+  color: var(--neo-text-main);
 }
 
 .neo-collab-top {

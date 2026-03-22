@@ -9,10 +9,23 @@ export async function connectToMongo() {
   const dbName = process.env.MONGODB_DB || undefined;
 
   if (!connectionPromise) {
-    connectionPromise = mongoose.connect(uri, {
-      autoIndex: true,
-      ...(dbName ? { dbName } : {}),
-    });
+    connectionPromise = mongoose
+      .connect(uri, {
+        autoIndex: true,
+        ...(dbName ? { dbName } : {}),
+      })
+      .catch((error) => {
+        connectionPromise = null;
+
+        if (error?.syscall === 'querySrv' && error?.code === 'ECONNREFUSED') {
+          error.message =
+            `MongoDB Atlas SRV lookup failed for ${error?.hostname || 'the cluster host'}. ` +
+            'This is usually a local DNS or network issue, not an application code issue. ' +
+            'Try switching DNS, allowing network access to MongoDB Atlas, or using the non-SRV Atlas connection string.';
+        }
+
+        throw error;
+      });
   }
 
   const conn = await connectionPromise;
