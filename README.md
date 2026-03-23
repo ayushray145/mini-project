@@ -1,133 +1,39 @@
-# DevRooms
+<img width="1875" height="955" alt="Image" src="https://github.com/user-attachments/assets/597f6a85-a6cc-4d70-b420-e847180fae45" />
+<img width="1875" height="955" alt="Image" src="https://github.com/user-attachments/assets/5fb174c8-715b-467e-8059-05bf0d2aa91a" />
+<img width="1875" height="955" alt="Image" src="https://github.com/user-attachments/assets/fedf5866-3e22-4c71-aa3c-60949c2012e5" />
+<img width="1847" height="938" alt="Image" src="https://github.com/user-attachments/assets/d48f1a26-c628-4c18-98c9-5521ea6b9cda" />
+<img width="1847" height="938" alt="Image" src="https://github.com/user-attachments/assets/bb6849b4-07aa-43cd-82e8-3297726ebeac" />
 
-DevRooms is a split-deployment app:
+## Backend
+For local dev, the backend lives in `backend/` and exposes:
+- `GET /api/health` for basic status.
+- `GET /api/messages?room=general` to fetch recent message history (requires MongoDB).
+- `POST /api/message` to broadcast chat messages via Pusher.
 
-- `frontend/` is the Vite + React client.
-- `backend/` is the Express API for communities, DMs, chat history, Pusher broadcasting, and MongoDB persistence.
-
-## Local development
-
-### Frontend
-
-1. Install dependencies in `frontend/`.
-2. Create `frontend/.env` from `frontend/.env.example`.
-3. Set:
-   - `VITE_CLERK_PUBLISHABLE_KEY`
-   - `VITE_PUSHER_KEY`
-   - `VITE_PUSHER_CLUSTER`
-   - `VITE_API_BASE_URL=http://localhost:3000`
-4. Run `npm run dev`.
-
-### Backend
-
+Setup:
 1. Install dependencies in `backend/`.
-2. Create `backend/.env` from `backend/.env.example`.
-3. Set:
-   - `PORT`
-   - `ALLOWED_ORIGIN=http://localhost:5173`
-   - `CLERK_SECRET_KEY`
-   - `MONGODB_URI`
-   - `MONGODB_DB`
-   - `PUSHER_APP_ID`
-   - `PUSHER_KEY`
-   - `PUSHER_SECRET`
-   - `PUSHER_CLUSTER`
-4. Run `npm run dev`.
+2. Create a `.env` in `backend/` using `backend/.env.example` as the template.
+3. Start the server with `npm run dev` (or `npm start`).
 
-## Production deployment
+Notes:
+- Pusher is required for chat delivery in this minimal backend.
+- Ensure `frontend/.env` uses the same Pusher `KEY` + `CLUSTER` as the backend, otherwise the chatroom realtime stream will not receive messages.
 
-Deploy the frontend and backend separately.
+Frontend dev server already proxies `/api` to `http://localhost:3000` via `frontend/vite.config.js`.
 
-### Recommended setup
+## Auth (Clerk)
+The frontend uses Clerk for authentication. For local dev:
+1. Create a Clerk application (in the Clerk dashboard).
+2. Add `VITE_CLERK_PUBLISHABLE_KEY` to `frontend/.env` (see `frontend/.env.example`).
+3. Restart the Vite dev server after changing env vars.
 
-- Frontend host: Vercel
-- Backend host: Render
+## Vercel
+This repo is currently configured to build the frontend from `frontend/`.
 
-This repo already includes:
-
-- root `vercel.json` for the frontend build
-- root `render.yaml` for the backend service
-
-### Frontend on Vercel
-
-Deploy the repo to Vercel and keep the root-level `vercel.json`.
-
-Set these environment variables in the Vercel project:
-
-- `VITE_CLERK_PUBLISHABLE_KEY`
-- `VITE_PUSHER_KEY`
-- `VITE_PUSHER_CLUSTER`
-- `VITE_API_BASE_URL=https://your-render-backend-domain.onrender.com`
-
-Important:
-
-- `VITE_CLERK_PUBLISHABLE_KEY` must be a real Clerk publishable key, not the example value.
-- If this value is missing or fake, the app will intentionally show the Clerk configuration error screen on load.
-
-### Backend on Render
-
-Create a new Render Web Service from this repo, or use the included `render.yaml`.
-
-Service settings:
-
-- Root directory: `backend`
-- Build command: `npm install`
-- Start command: `npm start`
-- Health check path: `/api/health`
-
-Set these environment variables in Render:
-
-- `ALLOWED_ORIGIN=https://your-frontend-domain.vercel.app`
-- `CLERK_SECRET_KEY`
-- `CLERK_AUTHORIZED_PARTIES=https://your-frontend-domain.vercel.app`
-- `MONGODB_URI`
-- `MONGODB_DB`
+Set these environment variables in Vercel for the backend/API deployment you connect it to:
+- `MONGODB_URI` (optional, enables chat persistence)
 - `PUSHER_APP_ID`
 - `PUSHER_KEY`
 - `PUSHER_SECRET`
 - `PUSHER_CLUSTER`
-
-Optional backend env vars:
-
-- `CLERK_JWT_KEY`
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL`
-- `MIA_CONTEXT_MESSAGES`
-
-### Deployment order
-
-1. Deploy the backend on Render.
-2. Copy the Render service URL.
-3. Add that URL as `VITE_API_BASE_URL` in Vercel.
-4. Deploy the frontend on Vercel.
-5. Update Render `ALLOWED_ORIGIN` and `CLERK_AUTHORIZED_PARTIES` to the final Vercel domain if it changed.
-
-### Final verification checklist
-
-After deployment, confirm all of these:
-
-1. Open the frontend and make sure the Clerk publishable-key error does not appear.
-2. Visit `https://your-render-backend-domain.onrender.com/api/health` and confirm it responds.
-3. Sign in successfully in the frontend.
-4. Create or join a community.
-5. Open a chat room and send a message.
-6. Refresh the page and confirm history still loads.
-
-If the frontend shows the Clerk error screen, check only these first:
-
-1. `VITE_CLERK_PUBLISHABLE_KEY` exists in Vercel.
-2. The value is a real Clerk publishable key for your production Clerk app.
-3. You redeployed after saving the env var.
-
-## API notes
-
-- `GET /api/health` is public.
-- Community, contact, message history, and message send routes now require a valid Clerk bearer token.
-- Channel and DM access is enforced server-side.
-- MongoDB is required for community channels, direct messages, and stored history.
-
-## Current architecture
-
-- Frontend realtime subscriptions use Pusher.
-- Backend message posting triggers Pusher and stores messages in MongoDB when available.
-- Clerk auth is verified on the backend before protected requests are processed.
+- `ALLOWED_ORIGIN` (optional)

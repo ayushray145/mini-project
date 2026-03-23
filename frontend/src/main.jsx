@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')).render(
       </ClerkProvider>
     ) : (
       <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', color: '#e5e7eb' }}>
-        Missing or invalid <code>VITE_CLERK_PUBLISHABLE_KEY</code>. Add a real Clerk publishable key to <code>frontend/.env</code>, confirm <code>VITE_API_BASE_URL</code>, and restart the dev server.
+        Missing or invalid <code>VITE_CLERK_PUBLISHABLE_KEY</code>. Add a real Clerk publishable key to <code>frontend/.env</code> and restart the dev server.
       </div>
     )}
   </StrictMode>,
