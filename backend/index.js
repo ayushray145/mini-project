@@ -4,7 +4,7 @@ import express from 'express';
 import Pusher from 'pusher';
 import { connectToMongo, getMongoStatus } from './db/mongoose.js';
 import mongoose from 'mongoose';
-import { Contact, Conversation, Message, User } from './models/index.js';
+import { Community, Contact, Conversation, Message, User } from './models/index.js';
 
 dotenv.config();
 
@@ -44,13 +44,13 @@ const pusher = pusherConfigured
     })
   : null;
 
-const miaMentionPattern = /(^|\s)@mia\b/i;
+const miaMentionPattern = /(^|\s)@codex\b/i;
 const miaContextLimit = Math.max(0, Math.min(Number(MIA_CONTEXT_MESSAGES) || 0, 8));
 const roomContextBuffer = new Map();
 
 const shouldTriggerMia = ({ message, username }) => {
   if (!message) return false;
-  if (String(username || '').toLowerCase().includes('mia')) return false;
+  if (String(username || '').toLowerCase().includes('codex')) return false;
   return miaMentionPattern.test(message);
 };
 
@@ -69,13 +69,13 @@ const getRoomContext = (room) => {
 };
 
 const buildMiaPrompt = ({ room, raw, context = [] }) => {
-  const cleaned = String(raw || '').replace(miaMentionPattern, '$1').trim();
-  const contextLines = (Array.isArray(context) ? context : [])
-    .filter((m) => m && m.message && m.username && !String(m.username).toLowerCase().includes('mia'))
+    const cleaned = String(raw || '').replace(miaMentionPattern, '$1').trim();
+    const contextLines = (Array.isArray(context) ? context : [])
+    .filter((m) => m && m.message && m.username && !String(m.username).toLowerCase().includes('codex'))
     .slice(-miaContextLimit)
-    .map((m) => `${m.username}: ${String(m.message).slice(0, 240)}`);
+      .map((m) => `${m.username}: ${String(m.message).slice(0, 240)}`);
   return [
-    'You are Mia (AI), a helpful developer assistant in a team chatroom called DevRooms.',
+    'You are Codex AI, a helpful developer assistant in a team chatroom called DevRooms.',
     'Reply concisely and practically. Use Markdown. Use bullet lists when helpful.',
     'When you include code, use fenced code blocks with a language tag (```js, ```ts, ```bash, etc.).',
     room ? `Room: ${room}` : null,
@@ -88,6 +88,127 @@ const makeBotMessageId = (prefix = 'mia') =>
   `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
 
 let resolvedGeminiTarget = null;
+
+const slugify = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const generateInviteCode = () =>
+  `DEVR-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+const normalizeId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (value._id) return String(value._id);
+    if (value.id) return String(value.id);
+  }
+  return String(value);
+};
+
+const idsEqual = (a, b) => normalizeId(a) === normalizeId(b);
+
+const findCommunityMember = (community, userId) =>
+  Array.isArray(community?.members) ? community.members.find((member) => idsEqual(member.userId, userId)) : null;
+
+const isCommunityAdmin = (community, userId) => findCommunityMember(community, userId)?.role === 'owner';
+const isAnnouncementChannel = (channel) => {
+  const name = String(channel?.name || '').trim().toLowerCase();
+  const slug = String(channel?.slug || '').trim().toLowerCase();
+  return Boolean(channel?.adminOnlyPosting) || name === 'announcement' || name === 'announcements' || slug.endsWith('-announcement') || slug.endsWith('-announcements');
+};
+
+const upsertUserProfile = async ({
+  clerkUserId,
+  displayName = 'User',
+  email = '',
+  clientId,
+}) => {
+  const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { email: email.toLowerCase() };
+  return User.findOneAndUpdate(
+    userQuery,
+    {
+      $set: {
+        displayName,
+        ...(clerkUserId ? { clerkUserId } : {}),
+        ...(clientId ? { clientId } : {}),
+        ...(email ? { email: email.toLowerCase() } : {}),
+      },
+      $setOnInsert: { statusMessage: '' },
+    },
+    { upsert: true, new: true },
+  );
+};
+
+const resolveConversationFromRoom = async (room) => {
+  const normalized = String(room || '').trim();
+  if (!normalized) return null;
+  if (normalized.startsWith('dm:')) {
+    return Conversation.findOne({ _id: normalized.slice(3), type: 'dm' });
+  }
+  if (normalized.startsWith('channel:')) {
+    return Conversation.findOne({ _id: normalized.slice(8), type: 'community-channel' });
+  }
+  return Conversation.findOne({ type: 'room', slug: normalized });
+};
+
+const serializeCommunity = async (communityDoc, viewerUserId) => {
+  const community = await Community.findById(communityDoc._id)
+    .populate('ownerUserId', 'displayName clerkUserId email avatarUrl')
+    .populate('members.userId', 'displayName clerkUserId email avatarUrl');
+  if (!community) return null;
+
+  const channels = await Conversation.find({ type: 'community-channel', communityId: community._id })
+    .sort({ createdAt: 1 })
+    .populate('memberIds', 'displayName clerkUserId email avatarUrl');
+
+  const membership = findCommunityMember(community, viewerUserId);
+  const isAdmin = membership?.role === 'owner';
+
+  return {
+    id: String(community._id),
+    name: community.name,
+    slug: community.slug,
+    inviteCode: isAdmin ? community.inviteCode : null,
+    role: membership?.role || null,
+    isAdmin,
+    owner: community.ownerUserId
+      ? {
+          id: String(community.ownerUserId._id),
+          displayName: community.ownerUserId.displayName,
+          clerkUserId: community.ownerUserId.clerkUserId,
+          email: community.ownerUserId.email,
+          avatarUrl: community.ownerUserId.avatarUrl,
+        }
+      : null,
+    members: (community.members || [])
+      .filter((item) => item?.userId)
+      .map((item) => ({
+        id: String(item.userId._id),
+        displayName: item.userId.displayName,
+        clerkUserId: item.userId.clerkUserId,
+        email: item.userId.email,
+        avatarUrl: item.userId.avatarUrl,
+        role: item.role,
+      })),
+    channels: channels.map((channel) => ({
+      id: String(channel._id),
+      roomId: `channel:${channel._id}`,
+      name: channel.name || channel.slug,
+      slug: channel.slug,
+      adminOnlyPosting: isAnnouncementChannel(channel),
+      memberIds: (channel.memberIds || []).map((member) => String(member._id)),
+      memberClerkUserIds: (channel.memberIds || []).map((member) => member.clerkUserId).filter(Boolean),
+      memberCount: Array.isArray(channel.memberIds) ? channel.memberIds.length : 0,
+      isAccessible: (channel.memberIds || []).some((member) => idsEqual(member._id, viewerUserId)),
+    })),
+  };
+};
 
 async function generateMiaReply({ prompt, timeoutMs = 12000 }) {
   if (!GEMINI_API_KEY) {
@@ -195,25 +316,349 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/communities', async (req, res) => {
+  try {
+    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+    const user = await User.findOne({ clerkUserId });
+    if (!user) return res.json({ ok: true, communities: [] });
+
+    const communities = await Community.find({ 'members.userId': user._id }).sort({ updatedAt: -1, createdAt: -1 });
+    const results = [];
+    for (const community of communities) {
+      const serialized = await serializeCommunity(community, user._id);
+      if (serialized) results.push(serialized);
+    }
+    return res.json({ ok: true, communities: results });
+  } catch (error) {
+    console.error('Fetch communities failed', error);
+    return res.status(500).json({ ok: false, error: 'Fetch communities failed' });
+  }
+});
+
+app.post('/api/communities', async (req, res) => {
+  try {
+    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const displayName = req.body?.displayName?.trim?.() || 'User';
+    const email = req.body?.email?.trim?.() || '';
+    const name = req.body?.name?.trim?.() || '';
+    const memberEmails = Array.isArray(req.body?.memberEmails) ? req.body.memberEmails : [];
+
+    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!name) return res.status(400).json({ ok: false, error: 'Missing community name' });
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+    const owner = await upsertUserProfile({ clerkUserId, displayName, email });
+
+    const baseSlug = slugify(name) || `community-${Date.now()}`;
+    let slug = baseSlug;
+    let suffix = 2;
+    while (await Community.findOne({ slug })) {
+      slug = `${baseSlug}-${suffix++}`;
+    }
+
+    let inviteCode = generateInviteCode();
+    while (await Community.findOne({ inviteCode })) {
+      inviteCode = generateInviteCode();
+    }
+
+    const community = await Community.create({
+      name,
+      slug,
+      inviteCode,
+      ownerUserId: owner._id,
+      members: [{ userId: owner._id, role: 'owner' }],
+    });
+
+    const invitedUsers = [];
+    for (const item of memberEmails.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)) {
+      const user = await User.findOne({ email: item });
+      if (user && !invitedUsers.some((existing) => idsEqual(existing._id, user._id)) && !idsEqual(user._id, owner._id)) {
+        invitedUsers.push(user);
+      }
+    }
+
+    if (invitedUsers.length > 0) {
+      community.members.push(...invitedUsers.map((user) => ({ userId: user._id, role: 'member' })));
+      await community.save();
+    }
+
+    const defaultChannelMembers = [owner._id, ...invitedUsers.map((user) => user._id)];
+    for (const channelName of ['general', 'announcement']) {
+      await Conversation.create({
+        type: 'community-channel',
+        communityId: community._id,
+        slug: `${community.slug}-${channelName}`,
+        name: channelName,
+        memberIds: defaultChannelMembers,
+        createdById: owner._id,
+        adminOnlyPosting: channelName === 'announcement',
+      });
+    }
+
+    const serialized = await serializeCommunity(community, owner._id);
+    return res.status(201).json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Create community failed', error);
+    return res.status(500).json({ ok: false, error: 'Create community failed' });
+  }
+});
+
+app.post('/api/communities/join', async (req, res) => {
+  try {
+    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const displayName = req.body?.displayName?.trim?.() || 'User';
+    const email = req.body?.email?.trim?.() || '';
+    const inviteCode = req.body?.inviteCode?.trim?.()?.toUpperCase?.() || '';
+
+    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!inviteCode) return res.status(400).json({ ok: false, error: 'Missing inviteCode' });
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+    const user = await upsertUserProfile({ clerkUserId, displayName, email });
+    const community = await Community.findOne({ inviteCode });
+    if (!community) return res.status(404).json({ ok: false, error: 'Invalid invite code' });
+
+    if (!findCommunityMember(community, user._id)) {
+      community.members.push({ userId: user._id, role: 'member' });
+      await community.save();
+
+      await Conversation.updateMany(
+        { type: 'community-channel', communityId: community._id },
+        { $addToSet: { memberIds: user._id } },
+      );
+    }
+
+    const serialized = await serializeCommunity(community, user._id);
+    return res.json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Join community failed', error);
+    return res.status(500).json({ ok: false, error: 'Join community failed' });
+  }
+});
+
+app.post('/api/communities/:communityId/members', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const adminClerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const contactEmail = req.body?.contactEmail?.trim?.()?.toLowerCase?.() || '';
+
+    if (!communityId || !adminClerkUserId || !contactEmail) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId, clerkUserId, or contactEmail' });
+    }
+
+    await connectToMongo();
+    const admin = await User.findOne({ clerkUserId: adminClerkUserId });
+    const community = await Community.findById(communityId);
+    if (!admin || !community || !isCommunityAdmin(community, admin._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    const user = await User.findOne({ email: contactEmail });
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found for that email' });
+    if (!findCommunityMember(community, user._id)) {
+      community.members.push({ userId: user._id, role: 'member' });
+      await community.save();
+      await Conversation.updateMany(
+        { type: 'community-channel', communityId: community._id },
+        { $addToSet: { memberIds: user._id } },
+      );
+    }
+
+    const serialized = await serializeCommunity(community, admin._id);
+    return res.json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Add community member failed', error);
+    return res.status(500).json({ ok: false, error: 'Add community member failed' });
+  }
+});
+
+app.delete('/api/communities/:communityId/members/:memberId', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const memberId = String(req.params?.memberId || '').trim();
+    const adminClerkUserId = String(req.query?.clerkUserId || '').trim();
+    if (!communityId || !memberId || !adminClerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId, memberId, or clerkUserId' });
+    }
+
+    await connectToMongo();
+    const admin = await User.findOne({ clerkUserId: adminClerkUserId });
+    const community = await Community.findById(communityId);
+    if (!admin || !community || !isCommunityAdmin(community, admin._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+    if (idsEqual(community.ownerUserId, memberId)) {
+      return res.status(400).json({ ok: false, error: 'Owner cannot be removed' });
+    }
+
+    community.members = (community.members || []).filter((item) => !idsEqual(item.userId, memberId));
+    await community.save();
+    await Conversation.updateMany(
+      { type: 'community-channel', communityId: community._id },
+      { $pull: { memberIds: new mongoose.Types.ObjectId(memberId) } },
+    );
+
+    const serialized = await serializeCommunity(community, admin._id);
+    return res.json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Remove community member failed', error);
+    return res.status(500).json({ ok: false, error: 'Remove community member failed' });
+  }
+});
+
+app.post('/api/communities/:communityId/channels', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const name = req.body?.name?.trim?.() || '';
+    const memberIds = Array.isArray(req.body?.memberIds) ? req.body.memberIds : [];
+
+    if (!communityId || !clerkUserId || !name) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId, clerkUserId, or channel name' });
+    }
+
+    await connectToMongo();
+    const admin = await User.findOne({ clerkUserId });
+    const community = await Community.findById(communityId);
+    if (!admin || !community || !isCommunityAdmin(community, admin._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    const allowedMemberIds = (community.members || [])
+      .map((item) => String(item.userId))
+      .filter((id) => memberIds.length === 0 || memberIds.includes(id));
+    if (!allowedMemberIds.includes(String(admin._id))) allowedMemberIds.push(String(admin._id));
+
+    const baseSlug = slugify(name) || `channel-${Date.now()}`;
+    let slug = `${community.slug}-${baseSlug}`;
+    let suffix = 2;
+    while (await Conversation.findOne({ type: 'community-channel', communityId, slug })) {
+      slug = `${community.slug}-${baseSlug}-${suffix++}`;
+    }
+
+    await Conversation.create({
+      type: 'community-channel',
+      communityId,
+      slug,
+      name,
+      memberIds: allowedMemberIds.map((id) => new mongoose.Types.ObjectId(id)),
+      createdById: admin._id,
+      adminOnlyPosting: false,
+    });
+
+    const serialized = await serializeCommunity(community, admin._id);
+    return res.status(201).json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Create community channel failed', error);
+    return res.status(500).json({ ok: false, error: 'Create community channel failed' });
+  }
+});
+
+app.patch('/api/communities/:communityId/channels/:channelId/access', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const channelId = String(req.params?.channelId || '').trim();
+    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const memberIds = Array.isArray(req.body?.memberIds) ? req.body.memberIds : [];
+
+    if (!communityId || !channelId || !clerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId, channelId, or clerkUserId' });
+    }
+
+    await connectToMongo();
+    const admin = await User.findOne({ clerkUserId });
+    const community = await Community.findById(communityId);
+    if (!admin || !community || !isCommunityAdmin(community, admin._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    const allowedCommunityMemberIds = new Set((community.members || []).map((item) => String(item.userId)));
+    const nextMemberIds = memberIds.filter((id) => allowedCommunityMemberIds.has(String(id)));
+    if (!nextMemberIds.includes(String(admin._id))) nextMemberIds.push(String(admin._id));
+
+    await Conversation.findOneAndUpdate(
+      { _id: channelId, communityId, type: 'community-channel' },
+      { $set: { memberIds: nextMemberIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+      { new: true },
+    );
+
+    const serialized = await serializeCommunity(community, admin._id);
+    return res.json({ ok: true, community: serialized });
+  } catch (error) {
+    console.error('Update channel access failed', error);
+    return res.status(500).json({ ok: false, error: 'Update channel access failed' });
+  }
+});
+
+app.delete('/api/communities/:communityId/channels/:channelId', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const channelId = String(req.params?.channelId || '').trim();
+    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+
+    if (!communityId || !channelId || !clerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId, channelId, or clerkUserId' });
+    }
+
+    await connectToMongo();
+    const admin = await User.findOne({ clerkUserId });
+    const community = await Community.findById(communityId);
+    if (!admin || !community || !isCommunityAdmin(community, admin._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    const channel = await Conversation.findOne({ _id: channelId, communityId, type: 'community-channel' });
+    if (!channel) {
+      return res.status(404).json({ ok: false, error: 'Channel not found' });
+    }
+
+    if (isAnnouncementChannel(channel)) {
+      return res.status(400).json({ ok: false, error: 'Announcement channel cannot be deleted' });
+    }
+
+    await Message.deleteMany({ conversationId: channel._id });
+    await Conversation.deleteOne({ _id: channel._id });
+
+    const serialized = await serializeCommunity(community, admin._id);
+    return res.json({ ok: true, community: serialized, deletedChannelId: channelId });
+  } catch (error) {
+    console.error('Delete community channel failed', error);
+    return res.status(500).json({ ok: false, error: 'Delete community channel failed' });
+  }
+});
+
 app.get('/api/messages', async (req, res) => {
   try {
     const room = String(req.query?.room || 'general').trim() || 'general';
     const limit = Math.min(Number(req.query?.limit || 50) || 50, 200);
+    const clerkUserId = String(req.query?.clerkUserId || '').trim();
 
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
     }
 
     await connectToMongo();
-
-    const isDm = room.startsWith('dm:');
-    const conversationId = isDm ? room.slice(3) : null;
-
-    const conversation = isDm
-      ? await Conversation.findOne({ _id: conversationId, type: 'dm' }).select('_id')
-      : await Conversation.findOne({ type: 'room', slug: room }).select('_id');
+    const viewer = clerkUserId ? await User.findOne({ clerkUserId }) : null;
+    const conversation = await resolveConversationFromRoom(room);
 
     if (!conversation) return res.json({ ok: true, room, messages: [] });
+    if (conversation.type === 'community-channel') {
+      if (!viewer || !(conversation.memberIds || []).some((memberId) => idsEqual(memberId, viewer._id))) {
+        return res.status(403).json({ ok: false, error: 'Access denied to this channel' });
+      }
+    }
 
     const docs = await Message.find({ conversationId: conversation._id, deletedAt: { $exists: false } })
       .sort({ createdAt: -1 })
@@ -405,37 +850,46 @@ app.post('/api/message', async (req, res) => {
       try {
         await connectToMongo();
 
-        const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { displayName: username };
-        const sender = await User.findOneAndUpdate(
-          userQuery,
-          {
-            $set: {
-              displayName: username,
-              ...(clerkUserId ? { clerkUserId } : {}),
-              ...(clientId ? { clientId } : {}),
-            },
-            $setOnInsert: { statusMessage: '' },
-          },
-          { upsert: true, new: true },
-        );
+        const sender = await upsertUserProfile({
+          clerkUserId,
+          clientId,
+          displayName: username,
+          email: '',
+        });
+        let conversation = await resolveConversationFromRoom(room);
 
-        const isDm = room.startsWith('dm:');
-        const dmConversationId = isDm ? room.slice(3) : null;
-        const conversation = isDm
-          ? await Conversation.findOneAndUpdate(
-              { _id: dmConversationId, type: 'dm' },
-              { $set: { lastMessageAt: new Date(time) }, $addToSet: { memberIds: sender._id } },
-              { new: true },
-            )
-          : await Conversation.findOneAndUpdate(
-              { type: 'room', slug: room },
-              {
-                $setOnInsert: { type: 'room', slug: room, name: room },
-                $set: { lastMessageAt: new Date(time) },
-                $addToSet: { memberIds: sender._id },
-              },
-              { upsert: true, new: true },
-            );
+        if (conversation?.type === 'community-channel') {
+          if (!(conversation.memberIds || []).some((memberId) => idsEqual(memberId, sender._id))) {
+            throw new Error('You do not have access to this channel');
+          }
+          if (isAnnouncementChannel(conversation)) {
+            const parentCommunity = await Community.findById(conversation.communityId);
+            if (!parentCommunity || !isCommunityAdmin(parentCommunity, sender._id)) {
+              throw new Error('Only the community admin can post in announcement');
+            }
+          }
+          conversation = await Conversation.findOneAndUpdate(
+            { _id: conversation._id, type: 'community-channel' },
+            { $set: { lastMessageAt: new Date(time) } },
+            { new: true },
+          );
+        } else if (conversation?.type === 'dm') {
+          conversation = await Conversation.findOneAndUpdate(
+            { _id: conversation._id, type: 'dm' },
+            { $set: { lastMessageAt: new Date(time) }, $addToSet: { memberIds: sender._id } },
+            { new: true },
+          );
+        } else {
+          conversation = await Conversation.findOneAndUpdate(
+            { type: 'room', slug: room },
+            {
+              $setOnInsert: { type: 'room', slug: room, name: room },
+              $set: { lastMessageAt: new Date(time) },
+              $addToSet: { memberIds: sender._id },
+            },
+            { upsert: true, new: true },
+          );
+        }
 
         if (!conversation) {
           throw new Error('Conversation not found');
@@ -486,7 +940,7 @@ app.post('/api/message', async (req, res) => {
             id: makeBotMessageId('mia'),
             room,
             message: reply,
-            username: 'Mia (AI)',
+            username: 'Codex AI',
             time: new Date().toISOString(),
             clientId: 'mia-gemini',
             isBot: true,
@@ -496,12 +950,12 @@ app.post('/api/message', async (req, res) => {
           await pusher.trigger('chat', 'message', miaMessage);
         } catch (error) {
           const msg = error?.message || String(error);
-          console.warn('Mia (Gemini) reply failed:', msg);
+          console.warn('Codex AI (Gemini) reply failed:', msg);
           const miaErrorMessage = {
             id: makeBotMessageId('mia-error'),
             room,
-            message: `Mia is offline right now (${msg}).`,
-            username: 'Mia (AI)',
+            message: `Codex AI is offline right now (${msg}).`,
+            username: 'Codex AI',
             time: new Date().toISOString(),
             clientId: 'mia-gemini',
             isBot: true,

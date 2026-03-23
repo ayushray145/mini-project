@@ -1,179 +1,134 @@
 import { useState } from 'react';
 
-const channels = ['welcome', 'announcements', 'frontend-help', 'backend-help', 'showcase'];
+export default function Dashboard({
+  communities = [],
+  activeCommunityId,
+  onOpenCommunity,
+  onOpenCommunityModal,
+}) {
+  const [copiedCommunityId, setCopiedCommunityId] = useState('');
+  const featuredCommunity = communities.find((community) => community.id === activeCommunityId) || communities[0] || null;
 
-const channelDetails = {
-  welcome: {
-    title: 'Welcome',
-    summary: 'Start here for quick pointers, team norms, and how DevRooms works.',
-    highlights: ['# Introductions and team norms', '# How to use rooms effectively', '# Best practices & etiquette'],
-  },
-  announcements: {
-    title: 'Announcements',
-    summary: 'Release notes, schedule changes, and critical project updates.',
-    highlights: ['# Release windows and hotfixes', '# Leadership updates', '# Policy changes'],
-  },
-  'frontend-help': {
-    title: 'Frontend Help',
-    summary: 'UI bugs, design reviews, and component support.',
-    highlights: ['# Component reviews', '# UI bug triage', '# Design system usage'],
-  },
-  'backend-help': {
-    title: 'Backend Help',
-    summary: 'APIs, data pipelines, and production investigations.',
-    highlights: ['# API contract questions', '# DB migration checks', '# Service health triage'],
-  },
-  showcase: {
-    title: 'Showcase',
-    summary: 'Ship it loud. Demos, wins, and shipping updates.',
-    highlights: ['# Weekly demos', '# Before/after snapshots', '# Team wins'],
-  },
-};
-
-const contacts = [
-  { name: 'Ayush', role: 'Frontend Lead', status: 'Online' },
-  { name: 'Ashwin', role: 'Backend Engineer', status: 'Online' },
-  { name: 'Mia (AI)', role: 'Assistant Bot', status: 'Available' },
-  { name: 'Amritanshu', role: 'DevOps Engineer', status: 'Away' },
-];
-
-export default function Dashboard() {
-  const [activeChannel, setActiveChannel] = useState(channels[0]);
-  const [isChannelView, setIsChannelView] = useState(false);
-  const channelInfo = channelDetails[activeChannel];
-
-  const downloadBlueprint = () => {
-    const escapePdfText = (value) => value.replace(/[\\()]/g, '\\$&');
-    const lines = [
-      `Channel: ${channelInfo.title}`,
-      '',
-      channelInfo.summary,
-      '',
-      'Highlights:',
-      ...channelInfo.highlights.map((item) => `- ${item}`),
-    ];
-    const textLines = lines.map((line, index) => {
-      const prefix = index === 0 ? '72 720 Td' : '0 -20 Td';
-      return `${prefix} (${escapePdfText(line)}) Tj`;
-    });
-    const stream = `BT\n/F1 16 Tf\n${textLines.join('\n')}\nET`;
-    const objects = [];
-    const offsets = [];
-    const pushObject = (content) => {
-      offsets.push(objects.join('\n').length + (objects.length ? 1 : 0));
-      objects.push(content);
-    };
-
-    pushObject('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
-    pushObject('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj');
-    pushObject('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj');
-    pushObject(`4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj`);
-    pushObject('5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj');
-
-    const header = '%PDF-1.4';
-    const body = objects.join('\n');
-    const xrefOffset = header.length + 1 + body.length + 1;
-    const xrefEntries = ['0000000000 65535 f '].concat(
-      offsets.map((offset) => `${String(offset + header.length + 1).padStart(10, '0')} 00000 n `),
-    );
-    const xref = `xref\n0 ${xrefEntries.length}\n${xrefEntries.join('\n')}`;
-    const trailer = `trailer\n<< /Size ${xrefEntries.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-    const pdf = `${header}\n${body}\n${xref}\n${trailer}`;
-
-    const blob = new Blob([pdf], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${activeChannel}-blueprint.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const copyInviteCode = async (communityId, inviteCode) => {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopiedCommunityId(communityId);
+      window.setTimeout(() => {
+        setCopiedCommunityId((current) => (current === communityId ? '' : current));
+      }, 1600);
+    } catch (_) {
+      setCopiedCommunityId('');
+    }
   };
 
   return (
-    <section className="page-grid">
-      <aside className="panel channels-panel">
-        <div className="panel-title">Text Channels</div>
-        <ul className="channel-list">
-          {channels.map((channel) => (
-            <li
-              key={channel}
-              className={`channel-item ${activeChannel === channel ? 'active' : ''}`}
-              onClick={() => {
-                setActiveChannel(channel);
-                setIsChannelView(true);
-              }}
-            >
-              <span className="hash">#</span>
-              {channel}
-            </li>
-          ))}
-        </ul>
-      </aside>
+    <section className="dashboard-shell">
+      <div className="dashboard-hero-card">
+        <div className="dashboard-hero-copy">
+          <div className="dashboard-brand-mark">
+            <span className="dashboard-brand-icon" aria-hidden="true">
+              #
+            </span>
+            <span>DevRooms Dashboard</span>
+          </div>
 
-      <div className="panel content-panel">
-        {isChannelView ? (
-          <>
-            <div className="dashboard-channel-top">
-              <div className="dashboard-channel-header">
-                <span className="hash">#</span>
-                <h1>{channelInfo.title}</h1>
-              </div>
-              <button type="button" className="dashboard-download-btn" onClick={downloadBlueprint}>
-                Download PDF
-              </button>
-            </div>
-            <p className="muted">{channelInfo.summary}</p>
-
-            <div className="dashboard-channel-body dashboard-message-list">
-              {channelInfo.highlights.map((item) => (
-                <div key={item} className="dashboard-message">
-                  <div className="dashboard-message-meta">
-                    <strong>{item}</strong>
-                  </div>
-                  <p>Use this space to coordinate tasks, post updates, and tag owners for quick response.</p>
-                </div>
-              ))}
-            </div>
-
-          </>
-        ) : (
-          <>
-            <h1>Welcome to DevRooms</h1>
-            <p className="muted">
-              SaaS-grade collaboration hub for engineering teams. Jump into channels, start voice calls,
-              and coordinate code reviews with focused updates.
-            </p>
-
-            <div className="stats-row">
-              <div className="stat-card">
-                <span className="stat-label">Members Online</span>
-                <strong>128</strong>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Active Rooms</span>
-                <strong>14</strong>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Deploys Today</span>
-                <strong>9</strong>
-              </div>
-            </div>
-          </>
-        )}
+          <div className="dashboard-title-wrap">
+            <p className="dashboard-kicker">Trusted developer collaboration</p>
+            <h1>
+              Control your
+              <em> communities</em>
+            </h1>
+          </div>
+        </div>
       </div>
 
-      <aside className="panel activity-panel">
-        <div className="panel-title">Contacts</div>
-        <div className="activity-list">
-          {contacts.map((contact) => (
-            <article key={contact.name} className="activity-card">
-              <h3>{contact.name}</h3>
-              <p>{contact.role}</p>
-              <span className={`status-tag status-${contact.status.toLowerCase()}`}>{contact.status}</span>
-            </article>
-          ))}
+      <div className="dashboard-side-column">
+        <div className="dashboard-hero-metric">
+          <strong>{featuredCommunity ? `+${featuredCommunity.members || 1}` : '+0'}</strong>
+          <span>{featuredCommunity ? 'People in this community' : 'People per community'}</span>
         </div>
-      </aside>
+
+        <div className="dashboard-grid">
+          {communities.length > 0 ? (
+            communities.map((community) => {
+              const memberCount = community.members || 0;
+              const channelCount = community.channels?.length || 0;
+              const roomId = community.channels?.[0]?.roomId;
+              const isActive = community.id === activeCommunityId;
+              return (
+                <article key={community.id} className={`dashboard-community-card ${isActive ? 'active' : ''}`}>
+                  <div className="dashboard-community-top">
+                    <div>
+                      <span className="dashboard-community-label">Community</span>
+                      <h2>{community.label}</h2>
+                    </div>
+                    <span className="dashboard-community-status">{Math.max(1, Math.floor(memberCount * 0.6))} online</span>
+                  </div>
+
+                  <div className="dashboard-community-stats">
+                    <div>
+                      <strong>{memberCount}</strong>
+                      <span>Members</span>
+                    </div>
+                    <div>
+                      <strong>{channelCount}</strong>
+                      <span>Channels</span>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-community-key">
+                    <label>Unique key</label>
+                    <div className="dashboard-community-key-row">
+                      <code>{community.inviteCode || 'Member access only'}</code>
+                      <button
+                        type="button"
+                        className="dashboard-copy-key"
+                        aria-label="Copy access key"
+                        onClick={() => copyInviteCode(community.id, community.inviteCode)}
+                        disabled={!community.inviteCode}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                          <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </div>
+                    {copiedCommunityId === community.id && (
+                      <span className="dashboard-copy-status">Copied</span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="dashboard-community-open"
+                    onClick={() => roomId && onOpenCommunity?.(community.id, roomId)}
+                    disabled={!roomId}
+                  >
+                    Access Chatroom
+                  </button>
+
+                  {isActive && (
+                    <button
+                      type="button"
+                      className="dashboard-card-fab"
+                      aria-label="Create or join a community"
+                      onClick={() => onOpenCommunityModal?.('create')}
+                    >
+                      +
+                    </button>
+                  )}
+                </article>
+              );
+            })
+          ) : (
+            <div className="dashboard-empty-card">
+              <h2>No communities yet</h2>
+              <p>Create a community to generate a unique key and open its chatroom from here.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   );
 }

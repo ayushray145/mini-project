@@ -4,7 +4,8 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { createPusherClient } from '../lib/pusher';
 
 const defaultRooms = ['general', 'backend', 'frontend', 'devops'];
-const defaultMembers = ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'];
+const defaultMembers = ['Ava', 'Noah', 'Codex AI', 'Liam', 'Sofia', 'Ethan'];
+const CODEX_AI_MEMBER = 'Codex AI';
 
 const makeMessageId = () =>
   `m-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
@@ -30,7 +31,18 @@ const normalizeMessage = (payload) => ({
   isBot: payload.isBot,
 });
 
-export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {}, roomMembers, initialRoom }) {
+export default function ChatRoom({
+  account,
+  rooms = defaultRooms,
+  roomLabels = {},
+  roomMembers,
+  initialRoom,
+  community,
+  onCreateChannel,
+  onDeleteChannel,
+  onUpdateChannelAccess,
+  onRemoveCommunityMember,
+}) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
   const inputRef = useRef(null);
@@ -53,6 +65,11 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
   const [messages, setMessages] = useState([]);
   const [draftMessage, setDraftMessage] = useState('');
   const [historyWarning, setHistoryWarning] = useState('');
+  const [newChannelName, setNewChannelName] = useState('');
+  const [adminStatus, setAdminStatus] = useState('');
+  const [adminStatusTone, setAdminStatusTone] = useState('info');
+  const [channelAccessDrafts, setChannelAccessDrafts] = useState({});
+  const [openChannelMenuId, setOpenChannelMenuId] = useState('');
   const [username] = useState(() => {
     const stored = window.localStorage.getItem('chat_username');
     const preferred = account?.displayName?.trim?.();
@@ -63,6 +80,41 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
   const members = roomMembers?.[resolvedRoom] || defaultMembers;
   const channelRooms = rooms.filter((value) => !String(value).startsWith('dm:'));
   const dmRooms = rooms.filter((value) => String(value).startsWith('dm:'));
+  const communityMembers = Array.isArray(community?.members) ? community.members : [];
+  const communityChannels = Array.isArray(community?.channels) ? community.channels : [];
+  const isCommunityAdmin = Boolean(community?.isAdmin);
+  const communityMembersByName = Object.fromEntries(
+    communityMembers.map((member) => [member.displayName, member]),
+  );
+  const isAnnouncementChannel = (channel) => {
+    const name = String(channel?.name || '').trim().toLowerCase();
+    const slug = String(channel?.slug || '').trim().toLowerCase();
+    return Boolean(channel?.adminOnlyPosting) || name === 'announcement' || name === 'announcements' || slug.endsWith('-announcement') || slug.endsWith('-announcements');
+  };
+  const activeCommunityChannel = communityChannels.find((channel) => channel.roomId === resolvedRoom) || null;
+  const isAnnouncementRoom = isAnnouncementChannel(activeCommunityChannel);
+  const canPostInResolvedRoom = !isAnnouncementRoom || isCommunityAdmin;
+  const manageableChannels = communityChannels.filter((channel) => !isAnnouncementChannel(channel));
+  const selectedManageableChannel =
+    manageableChannels.find((channel) => channel.roomId === resolvedRoom) || null;
+  const displayedMembers = (
+    resolvedRoom.startsWith('dm:')
+      ? members
+      : members.length > 0
+        ? members
+        : communityMembers
+  ).map((member) => {
+    if (typeof member !== 'string') return member;
+    return communityMembersByName[member] || { displayName: member, id: member, role: 'member', isSynthetic: true };
+  });
+
+  useEffect(() => {
+    setChannelAccessDrafts(
+      Object.fromEntries(
+        communityChannels.map((channel) => [channel.id, Array.isArray(channel.memberIds) ? channel.memberIds : []]),
+      ),
+    );
+  }, [communityChannels]);
 
   const appendMessage = (nextMessage) => {
     setMessages((prev) => {
@@ -99,7 +151,11 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
 
     const loadHistory = async () => {
       try {
-        const resp = await fetch(`/api/messages?room=${encodeURIComponent(resolvedRoom)}`);
+        const query = new URLSearchParams({
+          room: resolvedRoom,
+          ...(account?.clerkUserId ? { clerkUserId: account.clerkUserId } : {}),
+        });
+        const resp = await fetch(`/api/messages?${query.toString()}`);
         const data = await resp.json().catch(() => null);
         if (cancelled) return;
         if (!resp.ok || !data?.ok) {
@@ -217,7 +273,7 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
 
   const sendMessage = () => {
     const trimmed = draftMessage.trim();
-    if (!trimmed || !username) return;
+    if (!trimmed || !username || !canPostInResolvedRoom) return;
     setDraftMessage('');
     const optimistic = normalizeMessage({
       id: makeMessageId(),
@@ -384,22 +440,134 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
     inputRef.current?.focus();
   };
 
+  const toggleChannelMember = (channelId, memberId) => {
+    setChannelAccessDrafts((prev) => {
+      const current = new Set(prev[channelId] || []);
+      if (current.has(memberId)) current.delete(memberId);
+      else current.add(memberId);
+      return { ...prev, [channelId]: Array.from(current) };
+    });
+  };
+
+  const handleCreateChannel = async () => {
+    const trimmed = newChannelName.trim();
+    if (!trimmed) return;
+      try {
+        setAdminStatus('');
+        setAdminStatusTone('info');
+        await onCreateChannel?.({
+        name: trimmed,
+        memberIds: communityMembers.map((member) => member.id),
+      });
+      setNewChannelName('');
+      setAdminStatus('Channel created.');
+    } catch (error) {
+      setAdminStatus(error?.message || 'Failed to create channel');
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+      try {
+        setAdminStatus('');
+        setAdminStatusTone('info');
+        await onRemoveCommunityMember?.(memberId);
+      setAdminStatus('Member removed.');
+    } catch (error) {
+      setAdminStatus(error?.message || 'Failed to remove member');
+    }
+  };
+
+  const handleSaveChannelAccess = async (channelId) => {
+      try {
+        setAdminStatus('');
+        setAdminStatusTone('info');
+        await onUpdateChannelAccess?.(channelId, channelAccessDrafts[channelId] || []);
+      setAdminStatus('Channel access updated.');
+    } catch (error) {
+      setAdminStatus(error?.message || 'Failed to update channel access');
+    }
+  };
+
+  const handleDeleteChannel = async (channelId) => {
+      try {
+        setAdminStatus('');
+        setAdminStatusTone('danger');
+        setOpenChannelMenuId('');
+        await onDeleteChannel?.(channelId);
+        setAdminStatus('Channel deleted.');
+      } catch (error) {
+        setAdminStatusTone('danger');
+        setAdminStatus(error?.message || 'Failed to delete channel');
+      }
+  };
+
   return (
     <section className="chat-layout discord-chatroom">
       <aside className="panel">
-        <div className="panel-title">Channels</div>
+        <div className="panel-title">{community?.name ? `${community.name} Channels` : 'Channels'}</div>
         <ul className="channel-list">
-          {channelRooms.map((room) => (
-            <li
-              key={room}
-              className={`channel-item ${resolvedRoom === room ? 'active' : ''}`}
-              onClick={() => setActiveRoom(room)}
-            >
-              <span className="hash">#</span>
-              {room}
-            </li>
-          ))}
+          {channelRooms.map((room) => {
+            const channel = communityChannels.find((item) => item.roomId === room) || null;
+            const canDeleteChannel = Boolean(isCommunityAdmin && channel && !isAnnouncementChannel(channel));
+            const isMenuOpen = openChannelMenuId === channel?.id;
+            return (
+              <li
+                key={room}
+                className={`channel-item ${resolvedRoom === room ? 'active' : ''}`}
+                onClick={() => setActiveRoom(room)}
+              >
+                <span className="hash">#</span>
+                <span className="channel-item-label">{roomLabels?.[room] || room}</span>
+                {canDeleteChannel && (
+                  <div className="channel-item-menu-wrap">
+                    <button
+                      type="button"
+                      className="channel-item-menu-btn"
+                      aria-label="Channel actions"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenChannelMenuId((current) => (current === channel.id ? '' : channel.id));
+                      }}
+                    >
+                      <span />
+                      <span />
+                      <span />
+                    </button>
+                    {isMenuOpen && (
+                      <button
+                        type="button"
+                        className="channel-item-delete"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteChannel(channel.id);
+                        }}
+                      >
+                        Delete channel
+                      </button>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
+
+        {isCommunityAdmin && (
+          <div className="community-sidebar-admin">
+            <div className="community-sidebar-title">Create channel</div>
+            <div className="community-admin-row community-admin-row-sidebar">
+              <input
+                type="text"
+                placeholder="release-updates"
+                value={newChannelName}
+                onChange={(event) => setNewChannelName(event.target.value)}
+              />
+              <button type="button" onClick={handleCreateChannel}>
+                Create
+              </button>
+            </div>
+          </div>
+        )}
 
         {dmRooms.length > 0 && (
           <>
@@ -423,7 +591,7 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
       <div className="panel chat-main">
         <div className="chat-header">
           <strong>
-            {resolvedRoom.startsWith('dm:') ? `@ ${roomLabels?.[resolvedRoom] || resolvedRoom.slice(3, 9)}` : `# ${resolvedRoom}`}
+            {resolvedRoom.startsWith('dm:') ? `@ ${roomLabels?.[resolvedRoom] || resolvedRoom.slice(3, 9)}` : `# ${roomLabels?.[resolvedRoom] || resolvedRoom}`}
           </strong>
           <span>Messages</span>
           <button
@@ -435,6 +603,9 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
           </button>
         </div>
         {historyWarning && <div className="chat-warning">{historyWarning}</div>}
+        {isAnnouncementRoom && !isCommunityAdmin && (
+          <div className="chat-warning">Only the community admin can post in announcement.</div>
+        )}
         <div className="message-list" ref={messageListRef}>
           {messages.map((message) => {
             const normalizeUser = (value) => (value || '').trim().toLowerCase();
@@ -496,7 +667,7 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
           </div>
         )}
 
-        <form
+      <form
           className="chat-input-wrap"
           onSubmit={(e) => {
             e.preventDefault();
@@ -505,8 +676,13 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
         >
           <input
             ref={inputRef}
-            placeholder={`Message #${resolvedRoom}`}
+            placeholder={
+              canPostInResolvedRoom
+                ? `Message #${roomLabels?.[resolvedRoom] || resolvedRoom}`
+                : 'Announcement is read-only for members'
+            }
             value={draftMessage}
+            disabled={!canPostInResolvedRoom}
             onChange={(e) => setDraftMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -519,15 +695,69 @@ export default function ChatRoom({ account, rooms = defaultRooms, roomLabels = {
       </div>
 
       <aside className="panel members-panel">
-        <div className="panel-title">Members</div>
+        <div className="panel-title">{community?.name ? `${community.name} Members` : 'Members'}</div>
         <ul className="member-list">
-          {members.map((member) => (
-            <li key={member} onClick={() => mentionMember(member)}>
-              <span className="status-dot" />
-              {member}
-            </li>
-          ))}
+          {displayedMembers.map((member) => {
+            const item = typeof member === 'string' ? { displayName: member, id: member, role: 'member' } : member;
+            return (
+              <li key={item.id || item.displayName} onClick={() => mentionMember(item.displayName)}>
+                <span className="status-dot" />
+                <span className="community-member-name">
+                  {item.displayName}
+                  {item.role === 'owner' ? ' (Admin)' : ''}
+                </span>
+                {isCommunityAdmin && item.role !== 'owner' && item.displayName !== CODEX_AI_MEMBER && !item.isSynthetic && (
+                  <button
+                    type="button"
+                    className="community-inline-action"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRemoveMember(item.id);
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
+
+        {isCommunityAdmin && (
+          <div className="community-admin-panel">
+            {selectedManageableChannel && (
+              <div className="community-admin-block">
+                <h4>Channel Access</h4>
+                <div className="community-channel-access-list">
+                  <div key={selectedManageableChannel.id} className="community-channel-access-card">
+                    <strong>{selectedManageableChannel.name}</strong>
+                    <div className="community-access-members">
+                      {communityMembers.map((member) => (
+                        <label key={`${selectedManageableChannel.id}-${member.id}`} className="community-access-toggle">
+                          <input
+                            type="checkbox"
+                            checked={(channelAccessDrafts[selectedManageableChannel.id] || []).includes(member.id)}
+                            onChange={() => toggleChannelMember(selectedManageableChannel.id, member.id)}
+                          />
+                          <span>{member.displayName}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="community-channel-save"
+                      onClick={() => handleSaveChannelAccess(selectedManageableChannel.id)}
+                    >
+                      Save Access
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {adminStatus && <div className={`community-admin-status ${adminStatusTone === 'danger' ? 'danger' : ''}`}>{adminStatus}</div>}
+          </div>
+        )}
       </aside>
     </section>
   );

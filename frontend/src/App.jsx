@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Show, SignIn, SignUp, UserButton, useUser } from '@clerk/react';
-import CommunityHome from './pages/CommunityHome';
+import Dashboard from './pages/Dashboard';
 import ChatRoom from './pages/ChatRoom';
 import Landing from './pages/Landing';
 import Settings from './pages/Settings';
 import ChatHub from './pages/ChatHub';
+import CommunityHome from './pages/CommunityHome';
 import CommunityModal from './component/ui/CommunityModal';
 import './App.css';
 
@@ -34,19 +35,35 @@ const globalTheme = {
   shadowSoft: '0 10px 28px rgba(15, 23, 42, 0.2)',
 };
 
+const CODEX_AI_MEMBER = 'Codex AI';
+const isAnnouncementChannel = (channel) => {
+  const name = String(channel?.name || '').trim().toLowerCase();
+  const slug = String(channel?.slug || '').trim().toLowerCase();
+  return Boolean(channel?.adminOnlyPosting) || name === 'announcement' || name === 'announcements' || slug.endsWith('-announcement') || slug.endsWith('-announcements');
+};
+const withDefaultChannelMembers = (members, channel) => {
+  const baseMembers = Array.isArray(members) ? members.filter(Boolean) : [];
+  if (isAnnouncementChannel(channel)) return baseMembers;
+  const nextMembers = [...baseMembers];
+  if (!nextMembers.includes(CODEX_AI_MEMBER)) nextMembers.push(CODEX_AI_MEMBER);
+  return nextMembers;
+};
+
 function App() {
   const [view, setView] = useState('landing');
   const [postAuthView, setPostAuthView] = useState('dashboard');
-  const [chatRooms, setChatRooms] = useState(['general', 'backend', 'frontend', 'devops']);
+  const [communities, setCommunities] = useState([]);
+  const [activeCommunityId, setActiveCommunityId] = useState('');
+  const [chatRooms, setChatRooms] = useState([]);
   const [activeChatRoom, setActiveChatRoom] = useState('general');
   const [roomLabels, setRoomLabels] = useState({});
   const [directMessages, setDirectMessages] = useState([]);
   const [communityModalOpen, setCommunityModalOpen] = useState(false);
   const [communityModalMode, setCommunityModalMode] = useState('create');
   const [roomMembers, setRoomMembers] = useState({
-    general: ['Ava', 'Noah', 'Mia (AI)', 'Liam', 'Sofia', 'Ethan'],
+    general: ['Ava', 'Noah', 'Codex AI', 'Liam', 'Sofia', 'Ethan'],
     backend: ['Noah', 'Liam', 'Ethan'],
-    frontend: ['Ava', 'Mia (AI)', 'Sofia'],
+    frontend: ['Ava', 'Codex AI', 'Sofia'],
     devops: ['Liam', 'Noah'],
   });
   const [account, setAccount] = useState(() => {
@@ -82,6 +99,34 @@ function App() {
       setView(postAuthView || 'dashboard');
     }
   }, [clerkLoaded, isSignedIn, view, postAuthView]);
+
+  React.useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    if (view === 'landing') {
+      setView('dashboard');
+    }
+  }, [clerkLoaded, isSignedIn, view]);
+
+  const refreshCommunities = React.useCallback(async () => {
+    if (!account?.clerkUserId) return;
+    const resp = await fetch(`/api/communities?clerkUserId=${encodeURIComponent(account.clerkUserId)}`);
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to fetch communities');
+    }
+    const nextCommunities = Array.isArray(data.communities) ? data.communities : [];
+    setCommunities(nextCommunities);
+    setActiveCommunityId((prev) => {
+      if (prev && nextCommunities.some((community) => community.id === prev)) return prev;
+      return nextCommunities[0]?.id || '';
+    });
+    return nextCommunities;
+  }, [account?.clerkUserId]);
+
+  React.useEffect(() => {
+    if (!clerkLoaded || !isSignedIn || !account?.clerkUserId) return;
+    refreshCommunities().catch(() => {});
+  }, [clerkLoaded, isSignedIn, account?.clerkUserId, refreshCommunities]);
 
   React.useEffect(() => {
     if (!clerkLoaded || !isSignedIn) return;
@@ -135,13 +180,96 @@ function App() {
     setView('sign-in');
   };
 
-  const communityRooms = chatRooms
-    .filter((roomId) => !String(roomId).startsWith('dm:'))
-    .map((roomId) => ({
-      id: roomId,
-      label: roomLabels[roomId] || roomId,
-      members: roomMembers[roomId]?.length || 0,
-    }));
+  const communityRooms = communities.map((community) => ({
+    id: community.id,
+    label: community.name,
+    members: Array.isArray(community.members) ? community.members.length : 0,
+    inviteCode: community.inviteCode,
+    channels: community.channels || [],
+    role: community.role,
+    isAdmin: community.isAdmin,
+  }));
+
+  const ownedCommunities = communities.filter((community) => community.role === 'owner' || community.isAdmin);
+  const ownedCommunityRooms = communityRooms.filter((community) => community.role === 'owner' || community.isAdmin);
+  const hasDashboardAccess = ownedCommunityRooms.length > 0;
+
+  const activeOwnedCommunity =
+    ownedCommunities.find((community) => community.id === activeCommunityId) ||
+    ownedCommunities[0] ||
+    null;
+
+  const activeCommunity =
+    communities.find((community) => community.id === activeCommunityId) ||
+    communities[0] ||
+    null;
+
+  const accessibleCommunityRooms = (activeCommunity?.channels || [])
+    .filter((channel) => channel.isAccessible)
+    .map((channel) => channel.roomId);
+
+  const effectiveRooms = [...accessibleCommunityRooms, ...directMessages.map((dm) => dm.roomId)];
+
+  const effectiveRoomLabels = {
+    ...roomLabels,
+    ...Object.fromEntries((activeCommunity?.channels || []).map((channel) => [channel.roomId, channel.name])),
+  };
+
+  const currentCommunityMemberMap = Object.fromEntries(
+    (activeCommunity?.members || []).map((member) => [member.id, member.displayName]),
+  );
+
+  const effectiveRoomMembers = {
+    ...roomMembers,
+    ...Object.fromEntries(
+      (activeCommunity?.channels || []).map((channel) => [
+        channel.roomId,
+        withDefaultChannelMembers(
+          (channel.memberIds || []).map((memberId) => currentCommunityMemberMap[memberId]).filter(Boolean),
+          channel,
+        ),
+      ]),
+    ),
+  };
+
+  React.useEffect(() => {
+    if (view !== 'chat') return;
+    if (!effectiveRooms.length) return;
+    if (!effectiveRooms.includes(activeChatRoom)) {
+      setActiveChatRoom(effectiveRooms[0]);
+    }
+  }, [view, activeChatRoom, effectiveRooms]);
+
+  React.useEffect(() => {
+    if (view !== 'community-dashboard') return;
+    if (hasDashboardAccess) return;
+    setView('dashboard');
+  }, [view, hasDashboardAccess]);
+
+  const upsertCommunity = (community) => {
+    if (!community?.id) return;
+    setCommunities((prev) => {
+      const next = prev.some((item) => item.id === community.id)
+        ? prev.map((item) => (item.id === community.id ? community : item))
+        : [community, ...prev];
+      return next;
+    });
+    setActiveCommunityId((prev) => prev || community.id);
+  };
+
+  const openCommunityById = (communityId, preferredRoomId) => {
+    const community = communities.find((item) => item.id === communityId);
+    if (!community) return;
+    const accessible = (community.channels || []).filter((channel) => channel.isAccessible);
+    const targetRoomId =
+      preferredRoomId && accessible.some((channel) => channel.roomId === preferredRoomId)
+        ? preferredRoomId
+        : accessible[0]?.roomId;
+    setActiveCommunityId(community.id);
+    if (targetRoomId) setActiveChatRoom(targetRoomId);
+    setView('chat');
+    setCommunityModalOpen(false);
+  };
 
   const openCommunityModal = (mode = 'create') => {
     setCommunityModalMode(mode);
@@ -153,30 +281,36 @@ function App() {
   };
 
   const openCommunityRoom = (roomId) => {
-    if (!roomId) return;
-    setActiveChatRoom(roomId);
-    setView('chat');
-    setCommunityModalOpen(false);
+    const ownerCommunity = communities.find((community) =>
+      (community.channels || []).some((channel) => channel.roomId === roomId),
+    );
+    if (!ownerCommunity) return;
+    openCommunityById(ownerCommunity.id, roomId);
   };
 
-  const createCommunity = ({ name, members = [] }) => {
-    const slug = name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-');
-    const roomId = slug || `community-${Date.now()}`;
-    const nextMembers = Array.from(
-      new Set([
-        ...(Array.isArray(members) ? members : []),
-        account?.displayName?.trim?.() || 'You',
-      ]),
-    );
-
-    setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
-    setRoomLabels((prev) => ({ ...prev, [roomId]: name.trim() || roomId }));
-    setRoomMembers((prev) => ({ ...prev, [roomId]: nextMembers.length ? nextMembers : ['You'] }));
-    openCommunityRoom(roomId);
+  const createCommunity = async ({ name, members = [] }) => {
+    const memberEmails = (Array.isArray(members) ? members : [])
+      .map((item) => String(item || '').trim().toLowerCase())
+      .filter(Boolean);
+    const resp = await fetch('/api/communities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkUserId: account?.clerkUserId,
+        displayName: account?.displayName,
+        email: account?.email,
+        name,
+        memberEmails,
+      }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to create community');
+    }
+    upsertCommunity(data.community);
+    setActiveCommunityId(data.community.id);
+    setView('community-dashboard');
+    setCommunityModalOpen(false);
   };
 
   const startDmByEmail = async (emailAddress) => {
@@ -209,6 +343,97 @@ function App() {
     setActiveChatRoom(dmRoom);
     setView('chat');
   };
+
+  const joinCommunityByInvite = async (inviteCode) => {
+    const resp = await fetch('/api/communities/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkUserId: account?.clerkUserId,
+        displayName: account?.displayName,
+        email: account?.email,
+        inviteCode,
+      }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to join community');
+    }
+    upsertCommunity(data.community);
+    setActiveCommunityId(data.community.id);
+    if (data.community.channels?.[0]?.roomId) {
+      setActiveChatRoom(data.community.channels[0].roomId);
+    }
+    setView('chat');
+    setCommunityModalOpen(false);
+  };
+
+  const createCommunityChannel = async ({ name, memberIds = [] }) => {
+    if (!activeCommunity?.id) throw new Error('No active community selected');
+    const resp = await fetch(`/api/communities/${activeCommunity.id}/channels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkUserId: account?.clerkUserId,
+        name,
+        memberIds,
+      }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to create channel');
+    }
+    upsertCommunity(data.community);
+  };
+
+  const updateChannelAccess = async (channelId, memberIds) => {
+    if (!activeCommunity?.id) throw new Error('No active community selected');
+    const resp = await fetch(`/api/communities/${activeCommunity.id}/channels/${channelId}/access`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkUserId: account?.clerkUserId,
+        memberIds,
+      }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to update channel access');
+    }
+    upsertCommunity(data.community);
+  };
+
+  const deleteCommunityChannel = async (channelId) => {
+    if (!activeCommunity?.id) throw new Error('No active community selected');
+    const resp = await fetch(
+      `/api/communities/${activeCommunity.id}/channels/${channelId}?clerkUserId=${encodeURIComponent(account?.clerkUserId || '')}`,
+      { method: 'DELETE' },
+    );
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to delete channel');
+    }
+    upsertCommunity(data.community);
+    const deletedRoomId = data.deletedChannelId ? `channel:${data.deletedChannelId}` : '';
+    const nextAccessibleRoom = (data.community?.channels || []).find((channel) => channel.isAccessible)?.roomId || '';
+    if (deletedRoomId && activeChatRoom === deletedRoomId) {
+      setActiveChatRoom(nextAccessibleRoom);
+    }
+  };
+
+  const removeCommunityMember = async (memberId) => {
+    if (!activeCommunity?.id) throw new Error('No active community selected');
+    const resp = await fetch(
+      `/api/communities/${activeCommunity.id}/members/${memberId}?clerkUserId=${encodeURIComponent(account?.clerkUserId || '')}`,
+      { method: 'DELETE' },
+    );
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to remove member');
+    }
+    upsertCommunity(data.community);
+  };
+
   const themeVars = {
     '--neo-primary': globalTheme.primary,
     '--neo-secondary': globalTheme.secondary,
@@ -257,28 +482,49 @@ function App() {
     <div className="discord-app" style={themeVars}>
       <div className="discord-shell">
         <header className={`discord-topbar ${view === 'chat-hub' ? 'discord-topbar-clear' : ''}`}>
-          <a
-            href="#"
-            className="brand"
-            onClick={(event) => {
-              event.preventDefault();
-              setView('landing');
-            }}
-          >
-            DevRooms
-          </a>
-          <div className="topbar-actions">
-            <button className={view === 'dashboard' ? 'active' : ''} onClick={() => requireAuth('dashboard')}>
-              Communities
-            </button>
-            <button className={view === 'chat' || view === 'chat-hub' ? 'active' : ''} onClick={() => requireAuth('chat-hub')}>
-              Chat Room
-            </button>
-            <button className={view === 'settings' ? 'active' : ''} onClick={() => requireAuth('settings')}>
-              Settings
-            </button>
+          <div className="topbar-left">
+            <a
+              href="#"
+              className="brand"
+              onClick={(event) => {
+                event.preventDefault();
+                setView(isSignedIn ? 'dashboard' : 'landing');
+              }}
+            >
+              DevRooms
+            </a>
+            {isSignedIn && hasDashboardAccess && (
+              <button
+                type="button"
+                className={`topbar-dashboard-link ${view === 'community-dashboard' ? 'active' : ''}`}
+                onClick={() => setView('community-dashboard')}
+              >
+                Dashboard
+              </button>
+            )}
           </div>
           <div className="topbar-user">
+            <button
+              type="button"
+              className={`topbar-settings-icon ${view === 'settings' ? 'active' : ''}`}
+              aria-label="Open settings"
+              onClick={() => requireAuth('settings')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 8.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M19.4 13.5a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-1.1 1.1a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2a1 1 0 0 0-.6.9v.2a1.2 1.2 0 0 1-1.2 1.2h-1.6a1.2 1.2 0 0 1-1.2-1.2v-.2a1 1 0 0 0-.6-.9a1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0l-1.1-1.1a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1a1 1 0 0 0-.9-.6h-.2A1.2 1.2 0 0 1 2.5 12v-1.6a1.2 1.2 0 0 1 1.2-1.2h.2a1 1 0 0 0 .9-.6a1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l1.1-1.1a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2h.1a1 1 0 0 0 .5-.9v-.2A1.2 1.2 0 0 1 10.4 2.5H12a1.2 1.2 0 0 1 1.2 1.2v.2a1 1 0 0 0 .6.9a1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l1.1 1.1a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1v.1a1 1 0 0 0 .9.5h.2a1.2 1.2 0 0 1 1.2 1.2V12a1.2 1.2 0 0 1-1.2 1.2h-.2a1 1 0 0 0-.9.3Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
             <Show when="signed-in">
               <UserButton />
             </Show>
@@ -288,7 +534,7 @@ function App() {
           </div>
         </header>
 
-        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''} ${view === 'dashboard' ? 'discord-workspace-dashboard' : ''}`}>
+        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''} ${view === 'community-dashboard' ? 'discord-workspace-dashboard' : ''}`}>
           <Show when="signed-out">
             <div className="auth-screen">
               {view === 'sign-up' ? <SignUp /> : <SignIn />}
@@ -308,27 +554,41 @@ function App() {
                 onOpenCommunityModal={openCommunityModal}
               />
             )}
+            {view === 'community-dashboard' && (
+              <Dashboard
+                communities={ownedCommunityRooms}
+                activeCommunityId={activeOwnedCommunity?.id || ''}
+                onOpenCommunityModal={openCommunityModal}
+                onOpenCommunity={openCommunityById}
+              />
+            )}
             {view === 'chat-hub' && (
               <ChatHub
                 onJoinExisting={(roomId) => {
+                  if (typeof roomId === 'string' && roomId.startsWith('channel:')) {
+                    openCommunityRoom(roomId);
+                    return;
+                  }
                   if (typeof roomId === 'string' && roomId) {
                     setActiveChatRoom(roomId);
+                    setView('chat');
+                    return;
                   }
-                  setView('chat');
+                  const firstRoom = activeCommunity?.channels?.find((channel) => channel.isAccessible)?.roomId;
+                  if (firstRoom) {
+                    openCommunityRoom(firstRoom);
+                  }
                 }}
                 onCreateRoom={(name, members) => {
-                  const slug = name
-                    .trim()
-                    .toLowerCase()
-                    .replace(/[^a-z0-9\s-]/g, '')
-                    .replace(/\s+/g, '-');
-                  const roomId = slug || `room-${Date.now()}`;
-                  setChatRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
-                  setRoomMembers((prev) => ({ ...prev, [roomId]: members }));
-                  setActiveChatRoom(roomId);
-                  setView('chat');
+                  const activeMemberIds =
+                    members.length > 0
+                      ? (activeCommunity?.members || [])
+                          .filter((member) => members.includes(member.displayName))
+                          .map((member) => member.id)
+                      : [];
+                  createCommunityChannel({ name, memberIds: activeMemberIds }).catch(() => {});
                 }}
-                contacts={Object.values(roomMembers).flat().filter((value, index, arr) => arr.indexOf(value) === index)}
+                contacts={(activeCommunity?.members || []).map((member) => member.displayName)}
                 onStartDm={startDmByEmail}
                 directMessages={directMessages}
               />
@@ -337,10 +597,15 @@ function App() {
               <ChatRoom
                 onGoHome={() => setView('landing')}
                 account={account}
-                rooms={chatRooms}
-                roomLabels={roomLabels}
-                roomMembers={roomMembers}
+                rooms={effectiveRooms}
+                roomLabels={effectiveRoomLabels}
+                roomMembers={effectiveRoomMembers}
                 initialRoom={activeChatRoom}
+                community={activeCommunity}
+                onCreateChannel={createCommunityChannel}
+                onDeleteChannel={deleteCommunityChannel}
+                onUpdateChannelAccess={updateChannelAccess}
+                onRemoveCommunityMember={removeCommunityMember}
               />
             )}
             {view === 'settings' && (
@@ -350,14 +615,16 @@ function App() {
               />
             )}
 
-            <button
-              type="button"
-              className="community-fab"
-              aria-label="Create or join a community"
-              onClick={() => openCommunityModal('create')}
-            >
-              +
-            </button>
+            {view !== 'chat' && view !== 'community-dashboard' && (
+              <button
+                type="button"
+                className="community-fab"
+                aria-label="Create or join a community"
+                onClick={() => openCommunityModal('create')}
+              >
+                +
+              </button>
+            )}
 
             <CommunityModal
               isOpen={communityModalOpen}
@@ -366,7 +633,7 @@ function App() {
               onModeChange={setCommunityModalMode}
               communities={communityRooms}
               onCreateCommunity={createCommunity}
-              onJoinCommunity={openCommunityRoom}
+              onJoinCommunity={joinCommunityByInvite}
             />
           </Show>
         </main>

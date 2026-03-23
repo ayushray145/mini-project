@@ -1,57 +1,51 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function CommunityModal({
   isOpen,
   mode = 'create',
   onClose,
   onModeChange,
-  communities = [],
   onCreateCommunity,
   onJoinCommunity,
 }) {
   const [communityName, setCommunityName] = useState('');
-  const [invitees, setInvitees] = useState('');
-  const [selectedCommunity, setSelectedCommunity] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
-
-  const communityOptions = useMemo(
-    () => communities.filter((community) => !String(community.id).startsWith('dm:')),
-    [communities],
-  );
 
   useEffect(() => {
     if (!isOpen) return;
     setError('');
-    if (mode === 'join') {
-      setSelectedCommunity((prev) => prev || communityOptions[0]?.id || '');
-    }
-  }, [isOpen, mode, communityOptions]);
+  }, [isOpen, mode]);
 
   if (!isOpen) return null;
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const trimmed = communityName.trim();
     if (!trimmed) {
       setError('Enter a community name.');
       return;
     }
-    const members = invitees
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
     setError('');
-    onCreateCommunity?.({ name: trimmed, members });
-    setCommunityName('');
-    setInvitees('');
+    try {
+      await onCreateCommunity?.({ name: trimmed, members: [] });
+      setCommunityName('');
+    } catch (nextError) {
+      setError(nextError?.message || 'Failed to create community');
+    }
   };
 
-  const handleJoin = () => {
-    if (!selectedCommunity) {
-      setError('Choose a community to join.');
+  const handleJoin = async () => {
+    if (!inviteCode.trim()) {
+      setError('Enter an invite code.');
       return;
     }
     setError('');
-    onJoinCommunity?.(selectedCommunity);
+    try {
+      await onJoinCommunity?.(inviteCode.trim());
+      setInviteCode('');
+    } catch (nextError) {
+      setError(nextError?.message || 'Failed to join community');
+    }
   };
 
   return (
@@ -103,19 +97,6 @@ export default function CommunityModal({
                 onChange={(event) => setCommunityName(event.target.value)}
               />
             </label>
-            <label className="community-modal-field">
-              <span>Invite teammates</span>
-              <input
-                type="text"
-                placeholder="Ava, Noah, Priya"
-                value={invitees}
-                onChange={(event) => setInvitees(event.target.value)}
-              />
-            </label>
-            <p className="community-modal-note">
-              Use communities to connect with companies, organise your workflow,
-              and review and share your code.
-            </p>
             <button type="button" className="neo-btn neo-btn-yellow" onClick={handleCreate}>
               Create Community
             </button>
@@ -123,34 +104,18 @@ export default function CommunityModal({
         ) : (
           <div className="community-modal-form">
             <label className="community-modal-field">
-              <span>Select a community</span>
-              <select
-                value={selectedCommunity}
-                onChange={(event) => setSelectedCommunity(event.target.value)}
-              >
-                <option value="">Choose a community</option>
-                {communityOptions.map((community) => (
-                  <option key={community.id} value={community.id}>
-                    {community.label}
-                  </option>
-                ))}
-              </select>
+              <span>Invite code</span>
+              <input
+                type="text"
+                placeholder="DEVR-8K29XQ"
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+              />
             </label>
-            <div className="community-modal-community-list">
-              {communityOptions.slice(0, 4).map((community) => (
-                <button
-                  key={community.id}
-                  type="button"
-                  className={`community-modal-community-card ${
-                    selectedCommunity === community.id ? 'active' : ''
-                  }`}
-                  onClick={() => setSelectedCommunity(community.id)}
-                >
-                  <strong>{community.label}</strong>
-                  <span>{community.members} members online</span>
-                </button>
-              ))}
-            </div>
+            <p className="community-modal-note">
+              Ask the community owner for the unique invite code, then use it
+              here to join the workspace.
+            </p>
             <button type="button" className="neo-btn neo-btn-purple" onClick={handleJoin}>
               Join Community
             </button>

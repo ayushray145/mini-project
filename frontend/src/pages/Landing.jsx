@@ -456,7 +456,7 @@ export default function Landing({
                 <div className="nf-ai-hub">
                   <span className="nf-ai-hub-icon">🤖</span>
                   <div>
-                    <div className="nf-ai-hub-name">Mia AI</div>
+                    <div className="nf-ai-hub-name">Codex AI</div>
                     <div className="nf-ai-hub-status">● Active</div>
                   </div>
                 </div>

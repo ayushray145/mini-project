@@ -4,13 +4,15 @@ const { Schema } = mongoose;
 
 const ConversationSchema = new Schema(
   {
-    // room: named channel, dm: 1:1, group: small group chat
-    type: { type: String, enum: ['room', 'dm', 'group'], required: true, index: true },
+    // room: named channel, dm: 1:1, group: small group chat, community-channel: channel scoped to a community
+    type: { type: String, enum: ['room', 'dm', 'group', 'community-channel'], required: true, index: true },
     slug: { type: String, index: true }, // for rooms (ex: "general")
     name: { type: String }, // display name for group/room
+    communityId: { type: Schema.Types.ObjectId, ref: 'Community', index: true },
 
     memberIds: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
     createdById: { type: Schema.Types.ObjectId, ref: 'User' },
+    adminOnlyPosting: { type: Boolean, default: false },
 
     lastMessageAt: { type: Date, index: true },
 
@@ -21,6 +23,7 @@ const ConversationSchema = new Schema(
 );
 
 ConversationSchema.index({ type: 1, slug: 1 }, { unique: true, sparse: true });
+ConversationSchema.index({ type: 1, communityId: 1, slug: 1 }, { unique: true, sparse: true });
 
 export const Conversation =
   mongoose.models.Conversation || mongoose.model('Conversation', ConversationSchema);
