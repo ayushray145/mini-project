@@ -28,9 +28,11 @@ The frontend uses Clerk for authentication. For local dev:
 3. Restart the Vite dev server after changing env vars.
 
 ## Vercel
-This repo is currently configured to build the frontend from `frontend/`.
+This repo is structured for Vercel deployments with serverless functions:
+- `api/health.js`
+- `api/message.js`
 
-Set these environment variables in Vercel for the backend/API deployment you connect it to:
+Set these environment variables in Vercel:
 - `MONGODB_URI` (optional, enables chat persistence)
 - `PUSHER_APP_ID`
 - `PUSHER_KEY`
