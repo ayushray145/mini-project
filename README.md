@@ -5,7 +5,7 @@
 <img width="1847" height="938" alt="Image" src="https://github.com/user-attachments/assets/bb6849b4-07aa-43cd-82e8-3297726ebeac" />
 
 ## Backend
-For local dev, the backend lives in `backend/` and exposes:-
+For local dev, the backend lives in `backend/` and exposes:
 - `GET /api/health` for basic status.
 - `GET /api/messages?room=general` to fetch recent message history (requires MongoDB).
 - `POST /api/message` to broadcast chat messages via Pusher.
@@ -28,11 +28,9 @@ The frontend uses Clerk for authentication. For local dev:
 3. Restart the Vite dev server after changing env vars.
 
 ## Vercel
-This repo is structured for Vercel deployments with serverless functions:
-- `api/health.js`
-- `api/message.js`
+This repo is currently configured to build the frontend from `frontend/`.
 
-Set these environment variables in Vercel:
+Set these environment variables in Vercel for the backend/API deployment you connect it to:
 - `MONGODB_URI` (optional, enables chat persistence)
 - `PUSHER_APP_ID`
 - `PUSHER_KEY`
