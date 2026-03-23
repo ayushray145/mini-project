@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function CommunityModal({
   isOpen,
@@ -11,11 +11,6 @@ export default function CommunityModal({
   const [communityName, setCommunityName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setError('');
-  }, [isOpen, mode]);
 
   if (!isOpen) return null;
 
@@ -49,7 +44,13 @@ export default function CommunityModal({
   };
 
   return (
-    <div className="community-modal-backdrop" onClick={onClose}>
+    <div
+      className="community-modal-backdrop"
+      onClick={() => {
+        setError('');
+        onClose?.();
+      }}
+    >
       <div
         className="community-modal"
         role="dialog"
@@ -64,7 +65,14 @@ export default function CommunityModal({
               {mode === 'create' ? 'Create a community' : 'Join a community'}
             </h2>
           </div>
-          <button type="button" className="community-modal-close" onClick={onClose}>
+          <button
+            type="button"
+            className="community-modal-close"
+            onClick={() => {
+              setError('');
+              onClose?.();
+            }}
+          >
             Close
           </button>
         </div>
@@ -73,14 +81,20 @@ export default function CommunityModal({
           <button
             type="button"
             className={mode === 'create' ? 'active' : ''}
-            onClick={() => onModeChange?.('create')}
+            onClick={() => {
+              setError('');
+              onModeChange?.('create');
+            }}
           >
             Create
           </button>
           <button
             type="button"
             className={mode === 'join' ? 'active' : ''}
-            onClick={() => onModeChange?.('join')}
+            onClick={() => {
+              setError('');
+              onModeChange?.('join');
+            }}
           >
             Join
           </button>

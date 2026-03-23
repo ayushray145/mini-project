@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import Pusher from 'pusher';
+import { authenticateClerkRequest } from './auth.js';
 import { connectToMongo, getMongoStatus } from './db/mongoose.js';
 import mongoose from 'mongoose';
 import { Community, Contact, Conversation, Message, User } from './models/index.js';
@@ -15,6 +16,8 @@ const {
   PUSHER_SECRET,
   PUSHER_CLUSTER,
   ALLOWED_ORIGIN,
+  CLERK_SECRET_KEY,
+  CLERK_JWT_KEY,
   GEMINI_API_KEY,
   GEMINI_MODEL = '',
   MIA_CONTEXT_MESSAGES = '4',
@@ -43,6 +46,8 @@ const pusher = pusherConfigured
       useTLS: true,
     })
   : null;
+
+const clerkConfigured = Boolean(CLERK_SECRET_KEY || CLERK_JWT_KEY);
 
 const miaMentionPattern = /(^|\s)@codex\b/i;
 const miaContextLimit = Math.max(0, Math.min(Number(MIA_CONTEXT_MESSAGES) || 0, 8));
@@ -128,8 +133,29 @@ const upsertUserProfile = async ({
   displayName = 'User',
   email = '',
   clientId,
+  avatarUrl = '',
 }) => {
-  const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { email: email.toLowerCase() };
+  const normalizedEmail = email ? email.toLowerCase() : '';
+  let existingUser = null;
+
+  if (clerkUserId) {
+    existingUser = await User.findOne({ clerkUserId });
+  }
+  if (!existingUser && clientId) {
+    existingUser = await User.findOne({ clientId });
+  }
+  if (!existingUser && normalizedEmail) {
+    existingUser = await User.findOne({ email: normalizedEmail });
+  }
+
+  const userQuery = existingUser?._id
+    ? { _id: existingUser._id }
+    : clerkUserId
+      ? { clerkUserId }
+      : clientId
+        ? { clientId }
+        : { email: normalizedEmail };
+
   return User.findOneAndUpdate(
     userQuery,
     {
@@ -137,7 +163,8 @@ const upsertUserProfile = async ({
         displayName,
         ...(clerkUserId ? { clerkUserId } : {}),
         ...(clientId ? { clientId } : {}),
-        ...(email ? { email: email.toLowerCase() } : {}),
+        ...(normalizedEmail ? { email: normalizedEmail } : {}),
+        ...(avatarUrl ? { avatarUrl } : {}),
       },
       $setOnInsert: { statusMessage: '' },
     },
@@ -308,6 +335,7 @@ app.get('/api/health', (req, res) => {
     ok: true,
     time: new Date().toISOString(),
     pusherConfigured,
+    clerkConfigured,
     mongo: getMongoStatus(),
     geminiConfigured: Boolean(GEMINI_API_KEY),
     geminiModelRequested: GEMINI_MODEL || null,
@@ -316,16 +344,24 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/communities', async (req, res) => {
+app.get('/api/communities', authenticateClerkRequest, async (req, res) => {
   try {
-    const clerkUserId = String(req.query?.clerkUserId || '').trim();
-    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    const clerkUserId = String(req.auth?.userId || '').trim();
+    if (!clerkUserId) return res.status(401).json({ ok: false, error: 'Missing authenticated user' });
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
     }
 
     await connectToMongo();
-    const user = await User.findOne({ clerkUserId });
+    let user = await User.findOne({ clerkUserId });
+    if (!user && req.auth?.profile) {
+      user = await upsertUserProfile({
+        clerkUserId,
+        displayName: req.auth.profile.displayName,
+        email: req.auth.profile.email,
+        avatarUrl: req.auth.profile.avatarUrl,
+      });
+    }
     if (!user) return res.json({ ok: true, communities: [] });
 
     const communities = await Community.find({ 'members.userId': user._id }).sort({ updatedAt: -1, createdAt: -1 });
@@ -341,22 +377,27 @@ app.get('/api/communities', async (req, res) => {
   }
 });
 
-app.post('/api/communities', async (req, res) => {
+app.post('/api/communities', authenticateClerkRequest, async (req, res) => {
   try {
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const clerkUserId = String(req.auth?.userId || '').trim();
     const displayName = req.body?.displayName?.trim?.() || 'User';
     const email = req.body?.email?.trim?.() || '';
     const name = req.body?.name?.trim?.() || '';
     const memberEmails = Array.isArray(req.body?.memberEmails) ? req.body.memberEmails : [];
 
-    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!clerkUserId) return res.status(401).json({ ok: false, error: 'Missing authenticated user' });
     if (!name) return res.status(400).json({ ok: false, error: 'Missing community name' });
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
     }
 
     await connectToMongo();
-    const owner = await upsertUserProfile({ clerkUserId, displayName, email });
+    const owner = await upsertUserProfile({
+      clerkUserId,
+      displayName: req.auth?.profile?.displayName || displayName,
+      email: req.auth?.profile?.email || email,
+      avatarUrl: req.auth?.profile?.avatarUrl || '',
+    });
 
     const baseSlug = slugify(name) || `community-${Date.now()}`;
     let slug = baseSlug;
@@ -412,21 +453,26 @@ app.post('/api/communities', async (req, res) => {
   }
 });
 
-app.post('/api/communities/join', async (req, res) => {
+app.post('/api/communities/join', authenticateClerkRequest, async (req, res) => {
   try {
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const clerkUserId = String(req.auth?.userId || '').trim();
     const displayName = req.body?.displayName?.trim?.() || 'User';
     const email = req.body?.email?.trim?.() || '';
     const inviteCode = req.body?.inviteCode?.trim?.()?.toUpperCase?.() || '';
 
-    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!clerkUserId) return res.status(401).json({ ok: false, error: 'Missing authenticated user' });
     if (!inviteCode) return res.status(400).json({ ok: false, error: 'Missing inviteCode' });
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
     }
 
     await connectToMongo();
-    const user = await upsertUserProfile({ clerkUserId, displayName, email });
+    const user = await upsertUserProfile({
+      clerkUserId,
+      displayName: req.auth?.profile?.displayName || displayName,
+      email: req.auth?.profile?.email || email,
+      avatarUrl: req.auth?.profile?.avatarUrl || '',
+    });
     const community = await Community.findOne({ inviteCode });
     if (!community) return res.status(404).json({ ok: false, error: 'Invalid invite code' });
 
@@ -448,10 +494,10 @@ app.post('/api/communities/join', async (req, res) => {
   }
 });
 
-app.post('/api/communities/:communityId/members', async (req, res) => {
+app.post('/api/communities/:communityId/members', authenticateClerkRequest, async (req, res) => {
   try {
     const communityId = String(req.params?.communityId || '').trim();
-    const adminClerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const adminClerkUserId = String(req.auth?.userId || '').trim();
     const contactEmail = req.body?.contactEmail?.trim?.()?.toLowerCase?.() || '';
 
     if (!communityId || !adminClerkUserId || !contactEmail) {
@@ -484,11 +530,11 @@ app.post('/api/communities/:communityId/members', async (req, res) => {
   }
 });
 
-app.delete('/api/communities/:communityId/members/:memberId', async (req, res) => {
+app.delete('/api/communities/:communityId/members/:memberId', authenticateClerkRequest, async (req, res) => {
   try {
     const communityId = String(req.params?.communityId || '').trim();
     const memberId = String(req.params?.memberId || '').trim();
-    const adminClerkUserId = String(req.query?.clerkUserId || '').trim();
+    const adminClerkUserId = String(req.auth?.userId || '').trim();
     if (!communityId || !memberId || !adminClerkUserId) {
       return res.status(400).json({ ok: false, error: 'Missing communityId, memberId, or clerkUserId' });
     }
@@ -518,10 +564,10 @@ app.delete('/api/communities/:communityId/members/:memberId', async (req, res) =
   }
 });
 
-app.post('/api/communities/:communityId/channels', async (req, res) => {
+app.post('/api/communities/:communityId/channels', authenticateClerkRequest, async (req, res) => {
   try {
     const communityId = String(req.params?.communityId || '').trim();
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const clerkUserId = String(req.auth?.userId || '').trim();
     const name = req.body?.name?.trim?.() || '';
     const memberIds = Array.isArray(req.body?.memberIds) ? req.body.memberIds : [];
 
@@ -566,11 +612,11 @@ app.post('/api/communities/:communityId/channels', async (req, res) => {
   }
 });
 
-app.patch('/api/communities/:communityId/channels/:channelId/access', async (req, res) => {
+app.patch('/api/communities/:communityId/channels/:channelId/access', authenticateClerkRequest, async (req, res) => {
   try {
     const communityId = String(req.params?.communityId || '').trim();
     const channelId = String(req.params?.channelId || '').trim();
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const clerkUserId = String(req.auth?.userId || '').trim();
     const memberIds = Array.isArray(req.body?.memberIds) ? req.body.memberIds : [];
 
     if (!communityId || !channelId || !clerkUserId) {
@@ -602,11 +648,11 @@ app.patch('/api/communities/:communityId/channels/:channelId/access', async (req
   }
 });
 
-app.delete('/api/communities/:communityId/channels/:channelId', async (req, res) => {
+app.delete('/api/communities/:communityId/channels/:channelId', authenticateClerkRequest, async (req, res) => {
   try {
     const communityId = String(req.params?.communityId || '').trim();
     const channelId = String(req.params?.channelId || '').trim();
-    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+    const clerkUserId = String(req.auth?.userId || '').trim();
 
     if (!communityId || !channelId || !clerkUserId) {
       return res.status(400).json({ ok: false, error: 'Missing communityId, channelId, or clerkUserId' });
@@ -639,11 +685,11 @@ app.delete('/api/communities/:communityId/channels/:channelId', async (req, res)
   }
 });
 
-app.get('/api/messages', async (req, res) => {
+app.get('/api/messages', authenticateClerkRequest, async (req, res) => {
   try {
     const room = String(req.query?.room || 'general').trim() || 'general';
     const limit = Math.min(Number(req.query?.limit || 50) || 50, 200);
-    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+    const clerkUserId = String(req.auth?.userId || '').trim();
 
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
@@ -657,6 +703,11 @@ app.get('/api/messages', async (req, res) => {
     if (conversation.type === 'community-channel') {
       if (!viewer || !(conversation.memberIds || []).some((memberId) => idsEqual(memberId, viewer._id))) {
         return res.status(403).json({ ok: false, error: 'Access denied to this channel' });
+      }
+    }
+    if (conversation.type === 'dm') {
+      if (!viewer || !(conversation.memberIds || []).some((memberId) => idsEqual(memberId, viewer._id))) {
+        return res.status(403).json({ ok: false, error: 'Access denied to this conversation' });
       }
     }
 
@@ -688,10 +739,10 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-app.get('/api/contacts', async (req, res) => {
+app.get('/api/contacts', authenticateClerkRequest, async (req, res) => {
   try {
-    const clerkUserId = String(req.query?.clerkUserId || '').trim();
-    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    const clerkUserId = String(req.auth?.userId || '').trim();
+    if (!clerkUserId) return res.status(401).json({ ok: false, error: 'Missing authenticated user' });
 
     if (!process.env.MONGODB_URI) {
       return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
@@ -743,15 +794,15 @@ app.get('/api/contacts', async (req, res) => {
   }
 });
 
-app.post('/api/contacts', async (req, res) => {
+app.post('/api/contacts', authenticateClerkRequest, async (req, res) => {
   try {
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || '';
+    const clerkUserId = String(req.auth?.userId || '').trim();
     const contactEmail = req.body?.contactEmail?.trim?.() || '';
     const contactClerkUserId = req.body?.contactClerkUserId?.trim?.() || '';
     const displayName = req.body?.displayName?.trim?.() || 'User';
     const email = req.body?.email?.trim?.() || '';
 
-    if (!clerkUserId) return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    if (!clerkUserId) return res.status(401).json({ ok: false, error: 'Missing authenticated user' });
     if (!contactEmail && !contactClerkUserId) {
       return res.status(400).json({ ok: false, error: 'Missing contactEmail or contactClerkUserId' });
     }
@@ -762,14 +813,12 @@ app.post('/api/contacts', async (req, res) => {
 
     await connectToMongo();
 
-    const owner = await User.findOneAndUpdate(
-      { clerkUserId },
-      {
-        $set: { clerkUserId, displayName, ...(email ? { email } : {}) },
-        $setOnInsert: { statusMessage: '' },
-      },
-      { upsert: true, new: true },
-    );
+    const owner = await upsertUserProfile({
+      clerkUserId,
+      displayName: req.auth?.profile?.displayName || displayName,
+      email: req.auth?.profile?.email || email,
+      avatarUrl: req.auth?.profile?.avatarUrl || '',
+    });
 
     const contactQuery = contactClerkUserId
       ? { clerkUserId: contactClerkUserId }
@@ -824,7 +873,7 @@ app.post('/api/contacts', async (req, res) => {
   }
 });
 
-app.post('/api/message', async (req, res) => {
+app.post('/api/message', authenticateClerkRequest, async (req, res) => {
   if (!pusher) {
     return res.status(500).json({ ok: false, error: 'Pusher not configured' });
   }
@@ -836,7 +885,7 @@ app.post('/api/message', async (req, res) => {
     const id = req.body?.id;
     const room = req.body?.room?.trim?.() || 'general';
     const clientId = req.body?.clientId?.trim?.() || undefined;
-    const clerkUserId = req.body?.clerkUserId?.trim?.() || undefined;
+    const clerkUserId = String(req.auth?.userId || '').trim() || undefined;
 
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Missing message' });
@@ -846,55 +895,63 @@ app.post('/api/message', async (req, res) => {
     let dbMessageId;
     let dbStored = false;
     let dbError;
+    if (!process.env.MONGODB_URI && (room.startsWith('channel:') || room.startsWith('dm:'))) {
+      return res.status(503).json({ ok: false, error: 'MongoDB is required for channel and DM messaging' });
+    }
+
     if (process.env.MONGODB_URI) {
+      await connectToMongo();
+
+      const sender = await upsertUserProfile({
+        clerkUserId,
+        clientId,
+        displayName: req.auth?.profile?.displayName || username,
+        email: req.auth?.profile?.email || '',
+        avatarUrl: req.auth?.profile?.avatarUrl || '',
+      });
+      let conversation = await resolveConversationFromRoom(room);
+
+      if (conversation?.type === 'community-channel') {
+        if (!(conversation.memberIds || []).some((memberId) => idsEqual(memberId, sender._id))) {
+          return res.status(403).json({ ok: false, error: 'You do not have access to this channel' });
+        }
+        if (isAnnouncementChannel(conversation)) {
+          const parentCommunity = await Community.findById(conversation.communityId);
+          if (!parentCommunity || !isCommunityAdmin(parentCommunity, sender._id)) {
+            return res.status(403).json({ ok: false, error: 'Only the community admin can post in announcement' });
+          }
+        }
+        conversation = await Conversation.findOneAndUpdate(
+          { _id: conversation._id, type: 'community-channel' },
+          { $set: { lastMessageAt: new Date(time) } },
+          { new: true },
+        );
+      } else if (conversation?.type === 'dm') {
+        if (!(conversation.memberIds || []).some((memberId) => idsEqual(memberId, sender._id))) {
+          return res.status(403).json({ ok: false, error: 'You do not have access to this conversation' });
+        }
+        conversation = await Conversation.findOneAndUpdate(
+          { _id: conversation._id, type: 'dm' },
+          { $set: { lastMessageAt: new Date(time) }, $addToSet: { memberIds: sender._id } },
+          { new: true },
+        );
+      } else {
+        conversation = await Conversation.findOneAndUpdate(
+          { type: 'room', slug: room },
+          {
+            $setOnInsert: { type: 'room', slug: room, name: room },
+            $set: { lastMessageAt: new Date(time) },
+            $addToSet: { memberIds: sender._id },
+          },
+          { upsert: true, new: true },
+        );
+      }
+
+      if (!conversation) {
+        return res.status(404).json({ ok: false, error: 'Conversation not found' });
+      }
+
       try {
-        await connectToMongo();
-
-        const sender = await upsertUserProfile({
-          clerkUserId,
-          clientId,
-          displayName: username,
-          email: '',
-        });
-        let conversation = await resolveConversationFromRoom(room);
-
-        if (conversation?.type === 'community-channel') {
-          if (!(conversation.memberIds || []).some((memberId) => idsEqual(memberId, sender._id))) {
-            throw new Error('You do not have access to this channel');
-          }
-          if (isAnnouncementChannel(conversation)) {
-            const parentCommunity = await Community.findById(conversation.communityId);
-            if (!parentCommunity || !isCommunityAdmin(parentCommunity, sender._id)) {
-              throw new Error('Only the community admin can post in announcement');
-            }
-          }
-          conversation = await Conversation.findOneAndUpdate(
-            { _id: conversation._id, type: 'community-channel' },
-            { $set: { lastMessageAt: new Date(time) } },
-            { new: true },
-          );
-        } else if (conversation?.type === 'dm') {
-          conversation = await Conversation.findOneAndUpdate(
-            { _id: conversation._id, type: 'dm' },
-            { $set: { lastMessageAt: new Date(time) }, $addToSet: { memberIds: sender._id } },
-            { new: true },
-          );
-        } else {
-          conversation = await Conversation.findOneAndUpdate(
-            { type: 'room', slug: room },
-            {
-              $setOnInsert: { type: 'room', slug: room, name: room },
-              $set: { lastMessageAt: new Date(time) },
-              $addToSet: { memberIds: sender._id },
-            },
-            { upsert: true, new: true },
-          );
-        }
-
-        if (!conversation) {
-          throw new Error('Conversation not found');
-        }
-
         const doc = await Message.create({
           conversationId: conversation._id,
           senderId: sender._id,
@@ -977,6 +1034,9 @@ app.post('/api/message', async (req, res) => {
 app.listen(PORT, () => {
   if (!pusherConfigured) {
     console.warn('Pusher env vars missing. Check backend/.env.example for required values.');
+  }
+  if (!clerkConfigured) {
+    console.warn('Clerk backend auth missing. Set CLERK_SECRET_KEY or CLERK_JWT_KEY to protect the API.');
   }
   if (!process.env.MONGODB_URI) {
     console.warn('MongoDB not configured. Set MONGODB_URI to enable persistence.');

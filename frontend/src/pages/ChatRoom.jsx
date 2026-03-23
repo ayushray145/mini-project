@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { apiFetch } from '../lib/api';
 import { createPusherClient } from '../lib/pusher';
 
 const defaultRooms = ['general', 'backend', 'frontend', 'devops'];
@@ -42,6 +43,7 @@ export default function ChatRoom({
   onDeleteChannel,
   onUpdateChannelAccess,
   onRemoveCommunityMember,
+  getToken,
 }) {
   const canvasRef = useRef(null);
   const messageListRef = useRef(null);
@@ -108,14 +110,6 @@ export default function ChatRoom({
     return communityMembersByName[member] || { displayName: member, id: member, role: 'member', isSynthetic: true };
   });
 
-  useEffect(() => {
-    setChannelAccessDrafts(
-      Object.fromEntries(
-        communityChannels.map((channel) => [channel.id, Array.isArray(channel.memberIds) ? channel.memberIds : []]),
-      ),
-    );
-  }, [communityChannels]);
-
   const appendMessage = (nextMessage) => {
     setMessages((prev) => {
       if (prev.some((msg) => msg.id === nextMessage.id)) return prev;
@@ -155,7 +149,7 @@ export default function ChatRoom({
           room: resolvedRoom,
           ...(account?.clerkUserId ? { clerkUserId: account.clerkUserId } : {}),
         });
-        const resp = await fetch(`/api/messages?${query.toString()}`);
+        const resp = await apiFetch(`/api/messages?${query.toString()}`, {}, getToken);
         const data = await resp.json().catch(() => null);
         if (cancelled) return;
         if (!resp.ok || !data?.ok) {
@@ -186,7 +180,7 @@ export default function ChatRoom({
     return () => {
       cancelled = true;
     };
-  }, [resolvedRoom]);
+  }, [resolvedRoom, account?.clerkUserId, getToken]);
 
   useEffect(() => {
     let pusher;
@@ -284,7 +278,7 @@ export default function ChatRoom({
       clientId,
     });
     appendMessage(optimistic);
-    fetch('/api/message', {
+    apiFetch('/api/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -294,9 +288,8 @@ export default function ChatRoom({
         time: new Date().toISOString(),
         room: resolvedRoom,
         clientId,
-        clerkUserId: account?.clerkUserId,
       }),
-    })
+    }, getToken)
       .then(async (resp) => {
         const data = await resp.json().catch(() => null);
         if (!resp.ok || !data?.ok) {
@@ -481,7 +474,10 @@ export default function ChatRoom({
       try {
         setAdminStatus('');
         setAdminStatusTone('info');
-        await onUpdateChannelAccess?.(channelId, channelAccessDrafts[channelId] || []);
+        await onUpdateChannelAccess?.(
+          channelId,
+          channelAccessDrafts[channelId] || selectedManageableChannel?.memberIds || [],
+        );
       setAdminStatus('Channel access updated.');
     } catch (error) {
       setAdminStatus(error?.message || 'Failed to update channel access');
@@ -736,7 +732,11 @@ export default function ChatRoom({
                         <label key={`${selectedManageableChannel.id}-${member.id}`} className="community-access-toggle">
                           <input
                             type="checkbox"
-                            checked={(channelAccessDrafts[selectedManageableChannel.id] || []).includes(member.id)}
+                            checked={(
+                              channelAccessDrafts[selectedManageableChannel.id] ||
+                              selectedManageableChannel.memberIds ||
+                              []
+                            ).includes(member.id)}
                             onChange={() => toggleChannelMember(selectedManageableChannel.id, member.id)}
                           />
                           <span>{member.displayName}</span>

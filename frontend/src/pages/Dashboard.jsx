@@ -17,7 +17,7 @@ export default function Dashboard({
       window.setTimeout(() => {
         setCopiedCommunityId((current) => (current === communityId ? '' : current));
       }, 1600);
-    } catch (_) {
+    } catch {
       setCopiedCommunityId('');
     }
   };

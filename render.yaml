@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: devrooms-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_AUTHORIZED_PARTIES
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        sync: false
+      - key: PUSHER_APP_ID
+        sync: false
+      - key: PUSHER_KEY
+        sync: false
+      - key: PUSHER_SECRET
+        sync: false
+      - key: PUSHER_CLUSTER
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: MIA_CONTEXT_MESSAGES
+        value: 4

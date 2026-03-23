@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Show, SignIn, SignUp, UserButton, useUser } from '@clerk/react';
+import { Show, SignIn, SignUp, UserButton, useAuth, useUser } from '@clerk/react';
 import Dashboard from './pages/Dashboard';
 import ChatRoom from './pages/ChatRoom';
 import Landing from './pages/Landing';
@@ -7,6 +7,7 @@ import Settings from './pages/Settings';
 import ChatHub from './pages/ChatHub';
 import CommunityHome from './pages/CommunityHome';
 import CommunityModal from './component/ui/CommunityModal';
+import { apiFetch } from './lib/api';
 import './App.css';
 
 const globalTheme = {
@@ -54,7 +55,6 @@ function App() {
   const [postAuthView, setPostAuthView] = useState('dashboard');
   const [communities, setCommunities] = useState([]);
   const [activeCommunityId, setActiveCommunityId] = useState('');
-  const [chatRooms, setChatRooms] = useState([]);
   const [activeChatRoom, setActiveChatRoom] = useState('general');
   const [roomLabels, setRoomLabels] = useState({});
   const [directMessages, setDirectMessages] = useState([]);
@@ -79,6 +79,7 @@ function App() {
   });
 
   const { isLoaded: clerkLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
 
   React.useEffect(() => {
     if (!clerkLoaded || !isSignedIn) return;
@@ -107,26 +108,31 @@ function App() {
     }
   }, [clerkLoaded, isSignedIn, view]);
 
-  const refreshCommunities = React.useCallback(async () => {
-    if (!account?.clerkUserId) return;
-    const resp = await fetch(`/api/communities?clerkUserId=${encodeURIComponent(account.clerkUserId)}`);
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok || !data?.ok) {
-      throw new Error(data?.error || 'Failed to fetch communities');
-    }
-    const nextCommunities = Array.isArray(data.communities) ? data.communities : [];
-    setCommunities(nextCommunities);
-    setActiveCommunityId((prev) => {
-      if (prev && nextCommunities.some((community) => community.id === prev)) return prev;
-      return nextCommunities[0]?.id || '';
-    });
-    return nextCommunities;
-  }, [account?.clerkUserId]);
-
   React.useEffect(() => {
     if (!clerkLoaded || !isSignedIn || !account?.clerkUserId) return;
-    refreshCommunities().catch(() => {});
-  }, [clerkLoaded, isSignedIn, account?.clerkUserId, refreshCommunities]);
+    let cancelled = false;
+
+    const loadCommunities = async () => {
+      const resp = await apiFetch('/api/communities', {}, getToken);
+      const data = await resp.json().catch(() => null);
+      if (cancelled) return;
+      if (!resp.ok || !data?.ok) {
+        throw new Error(data?.error || 'Failed to fetch communities');
+      }
+      const nextCommunities = Array.isArray(data.communities) ? data.communities : [];
+      setCommunities(nextCommunities);
+      setActiveCommunityId((prev) => {
+        if (prev && nextCommunities.some((community) => community.id === prev)) return prev;
+        return nextCommunities[0]?.id || '';
+      });
+    };
+
+    loadCommunities().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkLoaded, isSignedIn, account?.clerkUserId, getToken]);
 
   React.useEffect(() => {
     if (!clerkLoaded || !isSignedIn) return;
@@ -134,7 +140,7 @@ function App() {
     if (!account?.clerkUserId) return;
 
     let cancelled = false;
-    fetch(`/api/contacts?clerkUserId=${encodeURIComponent(account.clerkUserId)}`)
+    apiFetch('/api/contacts', {}, getToken)
       .then((resp) => resp.json().then((data) => ({ resp, data })).catch(() => ({ resp, data: null })))
       .then(({ resp, data }) => {
         if (cancelled) return;
@@ -146,13 +152,6 @@ function App() {
         setDirectMessages(dms);
 
         // Ensure DM rooms appear in the chat room list with labels.
-        setChatRooms((prev) => {
-          const next = [...prev];
-          for (const dm of dms) {
-            if (!next.includes(dm.roomId)) next.push(dm.roomId);
-          }
-          return next;
-        });
         setRoomLabels((prev) => {
           const next = { ...prev };
           for (const dm of dms) next[dm.roomId] = dm.label;
@@ -169,7 +168,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [clerkLoaded, isSignedIn, view, account?.clerkUserId]);
+  }, [clerkLoaded, isSignedIn, view, account?.clerkUserId, getToken]);
 
   const requireAuth = (nextView) => {
     if (isSignedIn) {
@@ -208,8 +207,6 @@ function App() {
     .filter((channel) => channel.isAccessible)
     .map((channel) => channel.roomId);
 
-  const effectiveRooms = [...accessibleCommunityRooms, ...directMessages.map((dm) => dm.roomId)];
-
   const effectiveRoomLabels = {
     ...roomLabels,
     ...Object.fromEntries((activeCommunity?.channels || []).map((channel) => [channel.roomId, channel.name])),
@@ -234,11 +231,12 @@ function App() {
 
   React.useEffect(() => {
     if (view !== 'chat') return;
-    if (!effectiveRooms.length) return;
-    if (!effectiveRooms.includes(activeChatRoom)) {
-      setActiveChatRoom(effectiveRooms[0]);
+    const nextRooms = [...accessibleCommunityRooms, ...directMessages.map((dm) => dm.roomId)];
+    if (!nextRooms.length) return;
+    if (!nextRooms.includes(activeChatRoom)) {
+      setActiveChatRoom(nextRooms[0]);
     }
-  }, [view, activeChatRoom, effectiveRooms]);
+  }, [view, activeChatRoom, accessibleCommunityRooms, directMessages]);
 
   React.useEffect(() => {
     if (view !== 'community-dashboard') return;
@@ -292,17 +290,16 @@ function App() {
     const memberEmails = (Array.isArray(members) ? members : [])
       .map((item) => String(item || '').trim().toLowerCase())
       .filter(Boolean);
-    const resp = await fetch('/api/communities', {
+    const resp = await apiFetch('/api/communities', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkUserId: account?.clerkUserId,
         displayName: account?.displayName,
         email: account?.email,
         name,
         memberEmails,
       }),
-    });
+    }, getToken);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.error || 'Failed to create community');
@@ -314,16 +311,15 @@ function App() {
   };
 
   const startDmByEmail = async (emailAddress) => {
-    const resp = await fetch('/api/contacts', {
+    const resp = await apiFetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkUserId: account?.clerkUserId,
         displayName: account?.displayName,
         email: account?.email,
         contactEmail: emailAddress,
       }),
-    });
+    }, getToken);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.error || 'Failed to add contact');
@@ -332,7 +328,6 @@ function App() {
     const dmRoom = data.dmRoom;
     const label = data.contact?.displayName || emailAddress;
 
-    setChatRooms((prev) => (prev.includes(dmRoom) ? prev : [...prev, dmRoom]));
     setRoomLabels((prev) => ({ ...prev, [dmRoom]: label }));
     setRoomMembers((prev) => ({ ...prev, [dmRoom]: [label] }));
     setDirectMessages((prev) => {
@@ -345,16 +340,15 @@ function App() {
   };
 
   const joinCommunityByInvite = async (inviteCode) => {
-    const resp = await fetch('/api/communities/join', {
+    const resp = await apiFetch('/api/communities/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkUserId: account?.clerkUserId,
         displayName: account?.displayName,
         email: account?.email,
         inviteCode,
       }),
-    });
+    }, getToken);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.error || 'Failed to join community');
@@ -370,15 +364,14 @@ function App() {
 
   const createCommunityChannel = async ({ name, memberIds = [] }) => {
     if (!activeCommunity?.id) throw new Error('No active community selected');
-    const resp = await fetch(`/api/communities/${activeCommunity.id}/channels`, {
+    const resp = await apiFetch(`/api/communities/${activeCommunity.id}/channels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkUserId: account?.clerkUserId,
         name,
         memberIds,
       }),
-    });
+    }, getToken);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.error || 'Failed to create channel');
@@ -388,14 +381,13 @@ function App() {
 
   const updateChannelAccess = async (channelId, memberIds) => {
     if (!activeCommunity?.id) throw new Error('No active community selected');
-    const resp = await fetch(`/api/communities/${activeCommunity.id}/channels/${channelId}/access`, {
+    const resp = await apiFetch(`/api/communities/${activeCommunity.id}/channels/${channelId}/access`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clerkUserId: account?.clerkUserId,
         memberIds,
       }),
-    });
+    }, getToken);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
       throw new Error(data?.error || 'Failed to update channel access');
@@ -405,9 +397,10 @@ function App() {
 
   const deleteCommunityChannel = async (channelId) => {
     if (!activeCommunity?.id) throw new Error('No active community selected');
-    const resp = await fetch(
-      `/api/communities/${activeCommunity.id}/channels/${channelId}?clerkUserId=${encodeURIComponent(account?.clerkUserId || '')}`,
+    const resp = await apiFetch(
+      `/api/communities/${activeCommunity.id}/channels/${channelId}`,
       { method: 'DELETE' },
+      getToken,
     );
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
@@ -423,9 +416,10 @@ function App() {
 
   const removeCommunityMember = async (memberId) => {
     if (!activeCommunity?.id) throw new Error('No active community selected');
-    const resp = await fetch(
-      `/api/communities/${activeCommunity.id}/members/${memberId}?clerkUserId=${encodeURIComponent(account?.clerkUserId || '')}`,
+    const resp = await apiFetch(
+      `/api/communities/${activeCommunity.id}/members/${memberId}`,
       { method: 'DELETE' },
+      getToken,
     );
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
@@ -597,7 +591,7 @@ function App() {
               <ChatRoom
                 onGoHome={() => setView('landing')}
                 account={account}
-                rooms={effectiveRooms}
+                rooms={[...accessibleCommunityRooms, ...directMessages.map((dm) => dm.roomId)]}
                 roomLabels={effectiveRoomLabels}
                 roomMembers={effectiveRoomMembers}
                 initialRoom={activeChatRoom}
@@ -606,6 +600,7 @@ function App() {
                 onDeleteChannel={deleteCommunityChannel}
                 onUpdateChannelAccess={updateChannelAccess}
                 onRemoveCommunityMember={removeCommunityMember}
+                getToken={getToken}
               />
             )}
             {view === 'settings' && (
