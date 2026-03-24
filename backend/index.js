@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import Pusher from 'pusher';
+import { fileURLToPath } from 'url';
 import { connectToMongo, getMongoStatus } from './db/mongoose.js';
 import mongoose from 'mongoose';
 import { Community, Contact, Conversation, Message, User } from './models/index.js';
@@ -1149,16 +1150,22 @@ app.post('/api/message', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  if (!pusherConfigured) {
-    console.warn('Pusher env vars missing. Check backend/.env.example for required values.');
-  }
-  if (!process.env.MONGODB_URI) {
-    console.warn('MongoDB not configured. Set MONGODB_URI to enable persistence.');
-  } else {
-    connectToMongo()
-      .then(() => console.log('MongoDB connected'))
-      .catch((err) => console.error('MongoDB connection failed', err));
-  }
-  console.log(`Backend listening on http://localhost:${PORT}`);
-});
+const isDirectRun = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isDirectRun) {
+  app.listen(PORT, () => {
+    if (!pusherConfigured) {
+      console.warn('Pusher env vars missing. Check backend/.env.example for required values.');
+    }
+    if (!process.env.MONGODB_URI) {
+      console.warn('MongoDB not configured. Set MONGODB_URI to enable persistence.');
+    } else {
+      connectToMongo()
+        .then(() => console.log('MongoDB connected'))
+        .catch((err) => console.error('MongoDB connection failed', err));
+    }
+    console.log(`Backend listening on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
