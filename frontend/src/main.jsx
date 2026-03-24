@@ -4,7 +4,9 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.trim();
+const clerkPubKey =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.trim() ||
+  (typeof __CLERK_PUBLISHABLE_KEY__ === 'string' ? __CLERK_PUBLISHABLE_KEY__.trim() : '');
 const hasValidClerkKey = Boolean(clerkPubKey && clerkPubKey.startsWith('pk_'));
 
 createRoot(document.getElementById('root')).render(
