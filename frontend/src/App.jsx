@@ -210,6 +210,13 @@ function App() {
     communities.find((community) => community.id === activeCommunityId) ||
     communities[0] ||
     null;
+  const roleDebugInfo = {
+    view,
+    hasDashboardAccess,
+    hasChatroomsAccess,
+    activeCommunityRole: activeCommunity?.role || '',
+    activeCommunityIsAdmin: Boolean(activeCommunity?.isAdmin),
+  };
 
   const openWorkspaceOverview = React.useCallback(() => {
     if (hasDashboardAccess) {
@@ -639,6 +646,7 @@ function App() {
                 onDeleteCommunity={deleteCommunity}
                 showOwnerFeatures
                 pageName="Dashboard"
+                debugInfo={roleDebugInfo}
               />
             )}
             {view === 'chatrooms-dashboard' && (
@@ -649,6 +657,7 @@ function App() {
                 onOpenCommunity={openCommunityById}
                 showOwnerFeatures={false}
                 pageName="Chatrooms"
+                debugInfo={roleDebugInfo}
               />
             )}
             {view === 'chat-hub' && (
