@@ -1,8 +1,26 @@
-export default function Settings({ account, onAccountChange }) {
+import { useEffect, useState } from 'react';
+
+export default function Settings({ account, onAccountChange, onSaveAccount }) {
+  const [draftAccount, setDraftAccount] = useState(account);
+  const [saveState, setSaveState] = useState({ status: 'idle', message: '' });
+
+  useEffect(() => {
+    setDraftAccount(account);
+  }, [account]);
+
   const setAccountField = (key, value) => {
-    const next = { ...account, [key]: value };
-    onAccountChange(next);
-    localStorage.setItem('devrooms.account', JSON.stringify(next));
+    setDraftAccount((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaveState({ status: 'saving', message: 'Saving...' });
+      const nextAccount = await onSaveAccount?.(draftAccount);
+      if (nextAccount) onAccountChange?.(nextAccount);
+      setSaveState({ status: 'success', message: 'Changes saved.' });
+    } catch (error) {
+      setSaveState({ status: 'error', message: error?.message || 'Failed to save settings' });
+    }
   };
 
   return (
@@ -19,7 +37,7 @@ export default function Settings({ account, onAccountChange }) {
             <input
               className="neo-theme-select"
               type="text"
-              value={account.displayName}
+              value={draftAccount.displayName}
               onChange={(e) => setAccountField('displayName', e.target.value)}
               placeholder="Your name"
             />
@@ -30,7 +48,7 @@ export default function Settings({ account, onAccountChange }) {
             <input
               className="neo-theme-select"
               type="text"
-              value={account.email}
+              value={draftAccount.email}
               onChange={(e) => setAccountField('email', e.target.value)}
               placeholder="name@company.com"
             />
@@ -40,7 +58,7 @@ export default function Settings({ account, onAccountChange }) {
             <span>Role</span>
             <select
               className="neo-theme-select"
-              value={account.role}
+              value={draftAccount.role}
               onChange={(e) => setAccountField('role', e.target.value)}
             >
               <option>Developer</option>
@@ -56,11 +74,27 @@ export default function Settings({ account, onAccountChange }) {
             <input
               className="neo-theme-select"
               type="text"
-              value={account.statusMessage}
+              value={draftAccount.statusMessage}
               onChange={(e) => setAccountField('statusMessage', e.target.value)}
               placeholder="Working on sprint backlog"
             />
           </label>
+
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="settings-save-button"
+              onClick={handleSave}
+              disabled={saveState.status === 'saving'}
+            >
+              {saveState.status === 'saving' ? 'Saving...' : 'Save Changes'}
+            </button>
+            {saveState.message && (
+              <span className={`settings-save-status ${saveState.status === 'error' ? 'error' : ''}`}>
+                {saveState.message}
+              </span>
+            )}
+          </div>
         </div>
       </article>
     </section>

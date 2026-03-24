@@ -123,26 +123,129 @@ const isAnnouncementChannel = (channel) => {
   return Boolean(channel?.adminOnlyPosting) || name === 'announcement' || name === 'announcements' || slug.endsWith('-announcement') || slug.endsWith('-announcements');
 };
 
+const mergeUserReferences = async (primaryUser, duplicateUsers) => {
+  for (const duplicateUser of duplicateUsers) {
+    if (!duplicateUser || idsEqual(primaryUser?._id, duplicateUser?._id)) continue;
+
+    await Community.updateMany(
+      { ownerUserId: duplicateUser._id },
+      { $set: { ownerUserId: primaryUser._id } },
+    );
+
+    const communities = await Community.find({ 'members.userId': duplicateUser._id });
+    for (const community of communities) {
+      let changed = false;
+      const nextMembers = [];
+      for (const member of community.members || []) {
+        if (!idsEqual(member.userId, duplicateUser._id)) {
+          if (!nextMembers.some((item) => idsEqual(item.userId, member.userId))) nextMembers.push(member);
+          continue;
+        }
+
+        changed = true;
+        const existingIndex = nextMembers.findIndex((item) => idsEqual(item.userId, primaryUser._id));
+        if (existingIndex >= 0) {
+          if (member.role === 'owner') nextMembers[existingIndex].role = 'owner';
+        } else {
+          nextMembers.push({ ...member.toObject(), userId: primaryUser._id });
+        }
+      }
+      if (changed) {
+        community.members = nextMembers;
+        await community.save();
+      }
+    }
+
+    const conversations = await Conversation.find({
+      $or: [{ memberIds: duplicateUser._id }, { createdById: duplicateUser._id }],
+    });
+    for (const conversation of conversations) {
+      let changed = false;
+      if (idsEqual(conversation.createdById, duplicateUser._id)) {
+        conversation.createdById = primaryUser._id;
+        changed = true;
+      }
+      if ((conversation.memberIds || []).some((memberId) => idsEqual(memberId, duplicateUser._id))) {
+        conversation.memberIds = [
+          ...new Map(
+            conversation.memberIds
+              .map((memberId) => (idsEqual(memberId, duplicateUser._id) ? primaryUser._id : memberId))
+              .map((memberId) => [String(memberId), memberId]),
+          ).values(),
+        ];
+        changed = true;
+      }
+      if (changed) await conversation.save();
+    }
+
+    await Message.updateMany(
+      { senderId: duplicateUser._id },
+      { $set: { senderId: primaryUser._id } },
+    );
+
+    await Contact.updateMany(
+      { ownerUserId: duplicateUser._id },
+      { $set: { ownerUserId: primaryUser._id } },
+    );
+    await Contact.updateMany(
+      { contactUserId: duplicateUser._id },
+      { $set: { contactUserId: primaryUser._id } },
+    );
+
+    const contacts = await Contact.find({}).sort({ createdAt: 1 });
+    const seenContactPairs = new Set();
+    for (const contact of contacts) {
+      const key = `${contact.ownerUserId}:${contact.contactUserId}`;
+      if (seenContactPairs.has(key)) {
+        await Contact.deleteOne({ _id: contact._id });
+        continue;
+      }
+      seenContactPairs.add(key);
+    }
+
+    await User.deleteOne({ _id: duplicateUser._id });
+  }
+};
+
 const upsertUserProfile = async ({
   clerkUserId,
   displayName = 'User',
   email = '',
   clientId,
 }) => {
-  const userQuery = clerkUserId ? { clerkUserId } : clientId ? { clientId } : { email: email.toLowerCase() };
-  return User.findOneAndUpdate(
-    userQuery,
-    {
-      $set: {
-        displayName,
-        ...(clerkUserId ? { clerkUserId } : {}),
-        ...(clientId ? { clientId } : {}),
-        ...(email ? { email: email.toLowerCase() } : {}),
-      },
-      $setOnInsert: { statusMessage: '' },
-    },
-    { upsert: true, new: true },
-  );
+  const normalizedEmail = email ? email.toLowerCase() : '';
+  const orQueries = [
+    ...(clerkUserId ? [{ clerkUserId }] : []),
+    ...(clientId ? [{ clientId }] : []),
+    ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+  ];
+
+  const matchingUsers = orQueries.length > 0 ? await User.find({ $or: orQueries }).sort({ createdAt: 1 }) : [];
+  const clientMatchedUser = clientId ? matchingUsers.find((user) => user.clientId === clientId) : null;
+  const clerkMatchedUser = clerkUserId ? matchingUsers.find((user) => user.clerkUserId === clerkUserId) : null;
+  const emailMatchedUser = normalizedEmail ? matchingUsers.find((user) => user.email === normalizedEmail) : null;
+  const existingUser = clientMatchedUser || clerkMatchedUser || emailMatchedUser || matchingUsers[0] || null;
+
+  if (existingUser) {
+    const duplicates = matchingUsers.filter((user) => !idsEqual(user._id, existingUser._id));
+    if (duplicates.length > 0) {
+      await mergeUserReferences(existingUser, duplicates);
+    }
+    existingUser.displayName = displayName;
+    if (clerkUserId) existingUser.clerkUserId = clerkUserId;
+    if (clientId) existingUser.clientId = clientId;
+    if (normalizedEmail) existingUser.email = normalizedEmail;
+    await existingUser.save();
+    return existingUser;
+  }
+
+  return User.create({
+    displayName,
+    ...(clerkUserId ? { clerkUserId } : {}),
+    ...(clientId ? { clientId } : {}),
+    ...(normalizedEmail ? { email: normalizedEmail } : {}),
+    statusMessage: '',
+  });
 };
 
 const resolveConversationFromRoom = async (room) => {
@@ -774,6 +877,44 @@ app.get('/api/contacts', async (req, res) => {
   } catch (error) {
     console.error('Fetch contacts failed', error);
     return res.status(500).json({ ok: false, error: 'Fetch contacts failed' });
+  }
+});
+
+app.patch('/api/account', async (req, res) => {
+  try {
+    const clerkUserId = String(req.body?.clerkUserId || '').trim();
+    const displayName = String(req.body?.displayName || '').trim();
+    const email = String(req.body?.email || '').trim();
+    const statusMessage = String(req.body?.statusMessage || '').trim();
+
+    if (!clerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    }
+    if (!displayName) {
+      return res.status(400).json({ ok: false, error: 'Display name is required' });
+    }
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+    const user = await upsertUserProfile({ clerkUserId, displayName, email });
+    user.statusMessage = statusMessage;
+    await user.save();
+
+    return res.json({
+      ok: true,
+      account: {
+        clerkUserId: user.clerkUserId,
+        displayName: user.displayName,
+        email: user.email || '',
+        avatarUrl: user.avatarUrl || '',
+        statusMessage: user.statusMessage || '',
+      },
+    });
+  } catch (error) {
+    console.error('Save account failed', error);
+    return res.status(500).json({ ok: false, error: 'Save account failed' });
   }
 });
 

@@ -87,7 +87,13 @@ function App() {
     const clerkUserId = user?.id;
     const avatarUrl = user?.imageUrl;
     setAccount((prev) => {
-      const next = { ...prev, clerkUserId, avatarUrl, displayName, email };
+      const next = {
+        ...prev,
+        clerkUserId,
+        avatarUrl,
+        displayName: prev?.customDisplayName ? prev.displayName : displayName,
+        email: prev?.customEmail ? prev.email : email,
+      };
       localStorage.setItem('devrooms.account', JSON.stringify(next));
       return next;
     });
@@ -190,9 +196,10 @@ function App() {
     isAdmin: community.isAdmin,
   }));
 
-  const ownedCommunities = communities.filter((community) => community.role === 'owner' || community.isAdmin);
-  const ownedCommunityRooms = communityRooms.filter((community) => community.role === 'owner' || community.isAdmin);
+  const ownedCommunities = communities.filter((community) => community.role === 'owner');
+  const ownedCommunityRooms = communityRooms.filter((community) => community.role === 'owner');
   const hasDashboardAccess = ownedCommunityRooms.length > 0;
+  const hasChatroomsAccess = communityRooms.length > 0;
 
   const activeOwnedCommunity =
     ownedCommunities.find((community) => community.id === activeCommunityId) ||
@@ -203,6 +210,14 @@ function App() {
     communities.find((community) => community.id === activeCommunityId) ||
     communities[0] ||
     null;
+
+  const openWorkspaceOverview = React.useCallback(() => {
+    if (hasDashboardAccess) {
+      setView('community-dashboard');
+      return;
+    }
+    setView('chatrooms-dashboard');
+  }, [hasDashboardAccess, hasChatroomsAccess]);
 
   const accessibleCommunityRooms = (activeCommunity?.channels || [])
     .filter((channel) => channel.isAccessible)
@@ -243,8 +258,16 @@ function App() {
   React.useEffect(() => {
     if (view !== 'community-dashboard') return;
     if (hasDashboardAccess) return;
+    if (hasChatroomsAccess) {
+      setView('chatrooms-dashboard');
+      return;
+    }
     setView('dashboard');
-  }, [view, hasDashboardAccess]);
+  }, [view, hasDashboardAccess, hasChatroomsAccess]);
+
+  React.useEffect(() => {
+    if (view !== 'chatrooms-dashboard') return;
+  }, [view, hasChatroomsAccess]);
 
   const upsertCommunity = (community) => {
     if (!community?.id) return;
@@ -459,6 +482,38 @@ function App() {
     }
   };
 
+  const saveAccount = async (nextAccount) => {
+    const sanitizedAccount = {
+      ...nextAccount,
+      displayName: String(nextAccount?.displayName || '').trim() || 'User',
+      email: String(nextAccount?.email || '').trim(),
+      statusMessage: String(nextAccount?.statusMessage || '').trim(),
+      customDisplayName: true,
+      customEmail: true,
+    };
+
+    if (sanitizedAccount.clerkUserId) {
+      const resp = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clerkUserId: sanitizedAccount.clerkUserId,
+          displayName: sanitizedAccount.displayName,
+          email: sanitizedAccount.email,
+          statusMessage: sanitizedAccount.statusMessage,
+        }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.ok) {
+        throw new Error(data?.error || 'Failed to save settings');
+      }
+    }
+
+    setAccount(sanitizedAccount);
+    localStorage.setItem('devrooms.account', JSON.stringify(sanitizedAccount));
+    return sanitizedAccount;
+  };
+
   const themeVars = {
     '--neo-primary': globalTheme.primary,
     '--neo-secondary': globalTheme.secondary,
@@ -518,13 +573,13 @@ function App() {
             >
               DevRooms
             </a>
-            {isSignedIn && hasDashboardAccess && (
+            {isSignedIn && (
               <button
                 type="button"
-                className={`topbar-dashboard-link ${view === 'community-dashboard' ? 'active' : ''}`}
-                onClick={() => setView('community-dashboard')}
+                className={`topbar-dashboard-link ${(view === 'community-dashboard' || view === 'chatrooms-dashboard') ? 'active' : ''}`}
+                onClick={openWorkspaceOverview}
               >
-                Dashboard
+                {hasDashboardAccess ? 'Dashboard' : 'Chatrooms'}
               </button>
             )}
           </div>
@@ -555,7 +610,7 @@ function App() {
           </div>
         </header>
 
-        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''} ${view === 'community-dashboard' ? 'discord-workspace-dashboard' : ''}`}>
+        <main className={`discord-workspace ${view === 'chat-hub' ? 'discord-workspace-clear discord-workspace-center' : ''} ${(view === 'community-dashboard' || view === 'chatrooms-dashboard') ? 'discord-workspace-dashboard' : ''}`}>
           <Show when="signed-out">
             <div className="auth-screen">
               {view === 'sign-up' ? <SignUp /> : <SignIn />}
@@ -582,6 +637,18 @@ function App() {
                 onOpenCommunityModal={openCommunityModal}
                 onOpenCommunity={openCommunityById}
                 onDeleteCommunity={deleteCommunity}
+                showOwnerFeatures
+                pageName="Dashboard"
+              />
+            )}
+            {view === 'chatrooms-dashboard' && (
+              <Dashboard
+                communities={communityRooms}
+                activeCommunityId={activeCommunity?.id || ''}
+                onOpenCommunityModal={openCommunityModal}
+                onOpenCommunity={openCommunityById}
+                showOwnerFeatures={false}
+                pageName="Chatrooms"
               />
             )}
             {view === 'chat-hub' && (
@@ -634,10 +701,11 @@ function App() {
               <Settings
                 account={account}
                 onAccountChange={setAccount}
+                onSaveAccount={saveAccount}
               />
             )}
 
-            {view !== 'chat' && view !== 'community-dashboard' && (
+            {view !== 'chat' && view !== 'community-dashboard' && view !== 'chatrooms-dashboard' && (
               <button
                 type="button"
                 className="community-fab"

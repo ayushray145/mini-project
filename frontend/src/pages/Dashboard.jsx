@@ -6,6 +6,8 @@ export default function Dashboard({
   onOpenCommunity,
   onOpenCommunityModal,
   onDeleteCommunity,
+  showOwnerFeatures = true,
+  pageName = 'Dashboard',
 }) {
   const [copiedCommunityId, setCopiedCommunityId] = useState('');
   const featuredCommunity = communities.find((community) => community.id === activeCommunityId) || communities[0] || null;
@@ -34,6 +36,14 @@ export default function Dashboard({
     }
   };
 
+  const emptyTitle = showOwnerFeatures ? 'No communities yet' : 'No community joined';
+  const emptyDescription = showOwnerFeatures
+    ? 'Create a community to generate a unique key and open its chatroom from here.'
+    : 'Join a community to access its chatrooms from here.';
+  const pageKicker = showOwnerFeatures ? 'Trusted developer collaboration' : 'Explore shared spaces';
+  const pageTitleLead = showOwnerFeatures ? 'Control your' : 'Explore your';
+  const pageTitleAccent = showOwnerFeatures ? 'communities' : 'communities';
+
   return (
     <section className="dashboard-shell">
       <div className="dashboard-hero-card">
@@ -42,14 +52,14 @@ export default function Dashboard({
             <span className="dashboard-brand-icon" aria-hidden="true">
               #
             </span>
-            <span>DevRooms Dashboard</span>
+            <span>{`DevRooms ${pageName}`}</span>
           </div>
 
           <div className="dashboard-title-wrap">
-            <p className="dashboard-kicker">Trusted developer collaboration</p>
+            <p className="dashboard-kicker">{pageKicker}</p>
             <h1>
-              Control your
-              <em> communities</em>
+              {pageTitleLead}
+              <em>{` ${pageTitleAccent}`}</em>
             </h1>
           </div>
         </div>
@@ -77,13 +87,15 @@ export default function Dashboard({
                     </div>
                     <div className="dashboard-community-actions">
                       <span className="dashboard-community-status">{Math.max(1, Math.floor(memberCount * 0.6))} online</span>
-                      <button
-                        type="button"
-                        className="dashboard-community-delete"
-                        onClick={() => handleDeleteCommunity(community)}
-                      >
-                        Delete
-                      </button>
+                      {showOwnerFeatures && (
+                        <button
+                          type="button"
+                          className="dashboard-community-delete"
+                          onClick={() => handleDeleteCommunity(community)}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -98,27 +110,29 @@ export default function Dashboard({
                     </div>
                   </div>
 
-                  <div className="dashboard-community-key">
-                    <label>Unique key</label>
-                    <div className="dashboard-community-key-row">
-                      <code>{community.inviteCode || 'Member access only'}</code>
-                      <button
-                        type="button"
-                        className="dashboard-copy-key"
-                        aria-label="Copy access key"
-                        onClick={() => copyInviteCode(community.id, community.inviteCode)}
-                        disabled={!community.inviteCode}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
-                          <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                        </svg>
-                      </button>
+                  {showOwnerFeatures && (
+                    <div className="dashboard-community-key">
+                      <label>Unique key</label>
+                      <div className="dashboard-community-key-row">
+                        <code>{community.inviteCode || 'Member access only'}</code>
+                        <button
+                          type="button"
+                          className="dashboard-copy-key"
+                          aria-label="Copy access key"
+                          onClick={() => copyInviteCode(community.id, community.inviteCode)}
+                          disabled={!community.inviteCode}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
+                            <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </div>
+                      {copiedCommunityId === community.id && (
+                        <span className="dashboard-copy-status">Copied</span>
+                      )}
                     </div>
-                    {copiedCommunityId === community.id && (
-                      <span className="dashboard-copy-status">Copied</span>
-                    )}
-                  </div>
+                  )}
 
                   <button
                     type="button"
@@ -144,8 +158,8 @@ export default function Dashboard({
             })
           ) : (
             <div className="dashboard-empty-card">
-              <h2>No communities yet</h2>
-              <p>Create a community to generate a unique key and open its chatroom from here.</p>
+              <h2>{emptyTitle}</h2>
+              <p>{emptyDescription}</p>
             </div>
           )}
         </div>
