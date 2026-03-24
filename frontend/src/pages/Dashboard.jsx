@@ -5,6 +5,7 @@ export default function Dashboard({
   activeCommunityId,
   onOpenCommunity,
   onOpenCommunityModal,
+  onDeleteCommunity,
 }) {
   const [copiedCommunityId, setCopiedCommunityId] = useState('');
   const featuredCommunity = communities.find((community) => community.id === activeCommunityId) || communities[0] || null;
@@ -19,6 +20,17 @@ export default function Dashboard({
       }, 1600);
     } catch (_) {
       setCopiedCommunityId('');
+    }
+  };
+
+  const handleDeleteCommunity = async (community) => {
+    if (!community?.id) return;
+    const confirmed = window.confirm(`Delete "${community.label}" permanently? This removes its channels and messages too.`);
+    if (!confirmed) return;
+    try {
+      await onDeleteCommunity?.(community.id);
+    } catch (error) {
+      window.alert(error?.message || 'Failed to delete community');
     }
   };
 
@@ -63,7 +75,16 @@ export default function Dashboard({
                       <span className="dashboard-community-label">Community</span>
                       <h2>{community.label}</h2>
                     </div>
-                    <span className="dashboard-community-status">{Math.max(1, Math.floor(memberCount * 0.6))} online</span>
+                    <div className="dashboard-community-actions">
+                      <span className="dashboard-community-status">{Math.max(1, Math.floor(memberCount * 0.6))} online</span>
+                      <button
+                        type="button"
+                        className="dashboard-community-delete"
+                        onClick={() => handleDeleteCommunity(community)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
 
                   <div className="dashboard-community-stats">

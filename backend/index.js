@@ -639,6 +639,40 @@ app.delete('/api/communities/:communityId/channels/:channelId', async (req, res)
   }
 });
 
+app.delete('/api/communities/:communityId', async (req, res) => {
+  try {
+    const communityId = String(req.params?.communityId || '').trim();
+    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+
+    if (!communityId || !clerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing communityId or clerkUserId' });
+    }
+
+    await connectToMongo();
+    const owner = await User.findOne({ clerkUserId });
+    const community = await Community.findById(communityId);
+
+    if (!owner || !community || !isCommunityAdmin(community, owner._id)) {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    const channels = await Conversation.find({ type: 'community-channel', communityId: community._id }).select('_id');
+    const channelIds = channels.map((channel) => channel._id);
+
+    if (channelIds.length > 0) {
+      await Message.deleteMany({ conversationId: { $in: channelIds } });
+      await Conversation.deleteMany({ _id: { $in: channelIds } });
+    }
+
+    await Community.deleteOne({ _id: community._id });
+
+    return res.json({ ok: true, deletedCommunityId: communityId });
+  } catch (error) {
+    console.error('Delete community failed', error);
+    return res.status(500).json({ ok: false, error: 'Delete community failed' });
+  }
+});
+
 app.get('/api/messages', async (req, res) => {
   try {
     const room = String(req.query?.room || 'general').trim() || 'general';

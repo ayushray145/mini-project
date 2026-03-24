@@ -460,8 +460,10 @@ export default function ChatRoom({
         memberIds: communityMembers.map((member) => member.id),
       });
       setNewChannelName('');
+      setAdminStatusTone('success');
       setAdminStatus('Channel created.');
     } catch (error) {
+      setAdminStatusTone('danger');
       setAdminStatus(error?.message || 'Failed to create channel');
     }
   };
@@ -471,8 +473,10 @@ export default function ChatRoom({
         setAdminStatus('');
         setAdminStatusTone('info');
         await onRemoveCommunityMember?.(memberId);
+      setAdminStatusTone('success');
       setAdminStatus('Member removed.');
     } catch (error) {
+      setAdminStatusTone('danger');
       setAdminStatus(error?.message || 'Failed to remove member');
     }
   };
@@ -482,8 +486,10 @@ export default function ChatRoom({
         setAdminStatus('');
         setAdminStatusTone('info');
         await onUpdateChannelAccess?.(channelId, channelAccessDrafts[channelId] || []);
+      setAdminStatusTone('success');
       setAdminStatus('Channel access updated.');
     } catch (error) {
+      setAdminStatusTone('danger');
       setAdminStatus(error?.message || 'Failed to update channel access');
     }
   };
@@ -755,7 +761,7 @@ export default function ChatRoom({
               </div>
             )}
 
-            {adminStatus && <div className={`community-admin-status ${adminStatusTone === 'danger' ? 'danger' : ''}`}>{adminStatus}</div>}
+            {adminStatus && <div className={`community-admin-status ${adminStatusTone}`}>{adminStatus}</div>}
           </div>
         )}
       </aside>

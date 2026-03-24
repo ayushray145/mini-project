@@ -434,6 +434,31 @@ function App() {
     upsertCommunity(data.community);
   };
 
+  const deleteCommunity = async (communityId) => {
+    if (!communityId) throw new Error('No community selected');
+    const resp = await fetch(
+      `/api/communities/${communityId}?clerkUserId=${encodeURIComponent(account?.clerkUserId || '')}`,
+      { method: 'DELETE' },
+    );
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || 'Failed to delete community');
+    }
+
+    let nextActiveCommunityId = '';
+    setCommunities((prev) => {
+      const next = prev.filter((community) => community.id !== communityId);
+      nextActiveCommunityId = next[0]?.id || '';
+      return next;
+    });
+
+    setActiveCommunityId((current) => (current === communityId ? nextActiveCommunityId : current));
+    if (view === 'chat' && activeCommunity?.id === communityId) {
+      setView('community-dashboard');
+      setActiveChatRoom('general');
+    }
+  };
+
   const themeVars = {
     '--neo-primary': globalTheme.primary,
     '--neo-secondary': globalTheme.secondary,
@@ -560,6 +585,7 @@ function App() {
                 activeCommunityId={activeOwnedCommunity?.id || ''}
                 onOpenCommunityModal={openCommunityModal}
                 onOpenCommunity={openCommunityById}
+                onDeleteCommunity={deleteCommunity}
               />
             )}
             {view === 'chat-hub' && (
