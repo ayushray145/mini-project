@@ -215,17 +215,18 @@ const upsertUserProfile = async ({
   clientId,
 }) => {
   const normalizedEmail = email ? email.toLowerCase() : '';
+  const effectiveClientId = clerkUserId ? '' : clientId;
   const orQueries = [
     ...(clerkUserId ? [{ clerkUserId }] : []),
-    ...(clientId ? [{ clientId }] : []),
+    ...(effectiveClientId ? [{ clientId: effectiveClientId }] : []),
     ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
   ];
 
   const matchingUsers = orQueries.length > 0 ? await User.find({ $or: orQueries }).sort({ createdAt: 1 }) : [];
-  const clientMatchedUser = clientId ? matchingUsers.find((user) => user.clientId === clientId) : null;
+  const clientMatchedUser = effectiveClientId ? matchingUsers.find((user) => user.clientId === effectiveClientId) : null;
   const clerkMatchedUser = clerkUserId ? matchingUsers.find((user) => user.clerkUserId === clerkUserId) : null;
   const emailMatchedUser = normalizedEmail ? matchingUsers.find((user) => user.email === normalizedEmail) : null;
-  const existingUser = clientMatchedUser || clerkMatchedUser || emailMatchedUser || matchingUsers[0] || null;
+  const existingUser = clerkMatchedUser || emailMatchedUser || clientMatchedUser || matchingUsers[0] || null;
 
   if (existingUser) {
     const duplicates = matchingUsers.filter((user) => !idsEqual(user._id, existingUser._id));
@@ -234,7 +235,7 @@ const upsertUserProfile = async ({
     }
     existingUser.displayName = displayName;
     if (clerkUserId) existingUser.clerkUserId = clerkUserId;
-    if (clientId) existingUser.clientId = clientId;
+    if (effectiveClientId) existingUser.clientId = effectiveClientId;
     if (normalizedEmail) existingUser.email = normalizedEmail;
     await existingUser.save();
     return existingUser;
@@ -243,7 +244,7 @@ const upsertUserProfile = async ({
   return User.create({
     displayName,
     ...(clerkUserId ? { clerkUserId } : {}),
-    ...(clientId ? { clientId } : {}),
+    ...(effectiveClientId ? { clientId: effectiveClientId } : {}),
     ...(normalizedEmail ? { email: normalizedEmail } : {}),
     statusMessage: '',
   });
@@ -916,6 +917,38 @@ app.patch('/api/account', async (req, res) => {
   } catch (error) {
     console.error('Save account failed', error);
     return res.status(500).json({ ok: false, error: 'Save account failed' });
+  }
+});
+
+app.get('/api/account', async (req, res) => {
+  try {
+    const clerkUserId = String(req.query?.clerkUserId || '').trim();
+    if (!clerkUserId) {
+      return res.status(400).json({ ok: false, error: 'Missing clerkUserId' });
+    }
+    if (!process.env.MONGODB_URI) {
+      return res.status(503).json({ ok: false, error: 'MongoDB not configured' });
+    }
+
+    await connectToMongo();
+    const user = await User.findOne({ clerkUserId });
+    if (!user) {
+      return res.json({ ok: true, account: null });
+    }
+
+    return res.json({
+      ok: true,
+      account: {
+        clerkUserId: user.clerkUserId,
+        displayName: user.displayName,
+        email: user.email || '',
+        avatarUrl: user.avatarUrl || '',
+        statusMessage: user.statusMessage || '',
+      },
+    });
+  } catch (error) {
+    console.error('Fetch account failed', error);
+    return res.status(500).json({ ok: false, error: 'Fetch account failed' });
   }
 });
 

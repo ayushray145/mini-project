@@ -8,7 +8,6 @@ export default function Dashboard({
   onDeleteCommunity,
   showOwnerFeatures = true,
   pageName = 'Dashboard',
-  debugInfo = null,
 }) {
   const [copiedCommunityId, setCopiedCommunityId] = useState('');
   const featuredCommunity = communities.find((community) => community.id === activeCommunityId) || communities[0] || null;
@@ -63,17 +62,6 @@ export default function Dashboard({
               <em>{` ${pageTitleAccent}`}</em>
             </h1>
           </div>
-
-          {debugInfo && (
-            <div className="dashboard-debug-panel">
-              <strong>Debug</strong>
-              <span>{`view: ${debugInfo.view}`}</span>
-              <span>{`hasDashboardAccess: ${String(debugInfo.hasDashboardAccess)}`}</span>
-              <span>{`hasChatroomsAccess: ${String(debugInfo.hasChatroomsAccess)}`}</span>
-              <span>{`activeCommunityRole: ${debugInfo.activeCommunityRole || 'none'}`}</span>
-              <span>{`activeCommunityIsAdmin: ${String(debugInfo.activeCommunityIsAdmin)}`}</span>
-            </div>
-          )}
         </div>
       </div>
 

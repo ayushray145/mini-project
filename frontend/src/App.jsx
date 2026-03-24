@@ -91,12 +91,37 @@ function App() {
         ...prev,
         clerkUserId,
         avatarUrl,
-        displayName: prev?.customDisplayName ? prev.displayName : displayName,
-        email: prev?.customEmail ? prev.email : email,
+        displayName,
+        email,
       };
       localStorage.setItem('devrooms.account', JSON.stringify(next));
       return next;
     });
+
+    let cancelled = false;
+    fetch(`/api/account?clerkUserId=${encodeURIComponent(clerkUserId)}`)
+      .then((resp) => resp.json().then((data) => ({ resp, data })).catch(() => ({ resp, data: null })))
+      .then(({ resp, data }) => {
+        if (cancelled) return;
+        if (!resp.ok || !data?.ok || !data?.account) return;
+        setAccount((prev) => {
+          const next = {
+            ...prev,
+            clerkUserId,
+            avatarUrl,
+            email,
+            displayName: data.account.displayName || displayName,
+            statusMessage: data.account.statusMessage || prev.statusMessage || '',
+          };
+          localStorage.setItem('devrooms.account', JSON.stringify(next));
+          return next;
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [clerkLoaded, isSignedIn, user]);
 
   React.useEffect(() => {
@@ -210,13 +235,6 @@ function App() {
     communities.find((community) => community.id === activeCommunityId) ||
     communities[0] ||
     null;
-  const roleDebugInfo = {
-    view,
-    hasDashboardAccess,
-    hasChatroomsAccess,
-    activeCommunityRole: activeCommunity?.role || '',
-    activeCommunityIsAdmin: Boolean(activeCommunity?.isAdmin),
-  };
 
   const openWorkspaceOverview = React.useCallback(() => {
     if (hasDashboardAccess) {
@@ -264,12 +282,6 @@ function App() {
 
   React.useEffect(() => {
     if (view !== 'community-dashboard') return;
-    if (hasDashboardAccess) return;
-    if (hasChatroomsAccess) {
-      setView('chatrooms-dashboard');
-      return;
-    }
-    setView('dashboard');
   }, [view, hasDashboardAccess, hasChatroomsAccess]);
 
   React.useEffect(() => {
@@ -495,8 +507,6 @@ function App() {
       displayName: String(nextAccount?.displayName || '').trim() || 'User',
       email: String(nextAccount?.email || '').trim(),
       statusMessage: String(nextAccount?.statusMessage || '').trim(),
-      customDisplayName: true,
-      customEmail: true,
     };
 
     if (sanitizedAccount.clerkUserId) {
@@ -580,16 +590,25 @@ function App() {
             >
               DevRooms
             </a>
-            {isSignedIn && (
+          </div>
+          {isSignedIn && (
+            <div className="topbar-center-nav">
               <button
                 type="button"
-                className={`topbar-dashboard-link ${(view === 'community-dashboard' || view === 'chatrooms-dashboard') ? 'active' : ''}`}
-                onClick={openWorkspaceOverview}
+                className={`topbar-dashboard-link ${view === 'community-dashboard' ? 'active' : ''}`}
+                onClick={() => setView('community-dashboard')}
               >
-                {hasDashboardAccess ? 'Dashboard' : 'Chatrooms'}
+                Dashboard
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                className={`topbar-dashboard-link ${view === 'chatrooms-dashboard' ? 'active' : ''}`}
+                onClick={() => setView('chatrooms-dashboard')}
+              >
+                Chatrooms
+              </button>
+            </div>
+          )}
           <div className="topbar-user">
             <button
               type="button"
@@ -646,7 +665,6 @@ function App() {
                 onDeleteCommunity={deleteCommunity}
                 showOwnerFeatures
                 pageName="Dashboard"
-                debugInfo={roleDebugInfo}
               />
             )}
             {view === 'chatrooms-dashboard' && (
@@ -657,7 +675,6 @@ function App() {
                 onOpenCommunity={openCommunityById}
                 showOwnerFeatures={false}
                 pageName="Chatrooms"
-                debugInfo={roleDebugInfo}
               />
             )}
             {view === 'chat-hub' && (

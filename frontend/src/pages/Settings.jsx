@@ -49,7 +49,7 @@ export default function Settings({ account, onAccountChange, onSaveAccount }) {
               className="neo-theme-select"
               type="text"
               value={draftAccount.email}
-              onChange={(e) => setAccountField('email', e.target.value)}
+              readOnly
               placeholder="name@company.com"
             />
           </label>
