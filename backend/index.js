@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import Pusher from 'pusher';
 import { fileURLToPath } from 'url';
-import { connectToMongo, getMongoStatus } from './db/mongoose.js';
+import { connectToMongo, getMongoStatus, getPublicMongoErrorMessage } from './db/mongoose.js';
 import mongoose from 'mongoose';
 import { Community, Contact, Conversation, Message, User } from './models/index.js';
 
@@ -442,7 +442,7 @@ app.get('/api/communities', async (req, res) => {
     return res.json({ ok: true, communities: results });
   } catch (error) {
     console.error('Fetch communities failed', error);
-    return res.status(500).json({ ok: false, error: 'Fetch communities failed' });
+    return res.status(500).json({ ok: false, error: getPublicMongoErrorMessage(error, 'Fetch communities failed') });
   }
 });
 

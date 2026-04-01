@@ -18,6 +18,7 @@ Setup:
 Notes:
 - Pusher is required for chat delivery in this minimal backend.
 - Ensure `frontend/.env` uses the same Pusher `KEY` + `CLUSTER` as the backend, otherwise the chatroom realtime stream will not receive messages.
+- If some Wi-Fi networks fail to resolve `mongodb+srv://` Atlas DNS records, add `MONGODB_URI_DIRECT` in `backend/.env` using Atlas's standard non-SRV connection string as a fallback.
 
 Frontend dev server already proxies `/api` to `http://localhost:3000` via `frontend/vite.config.js`.
 
